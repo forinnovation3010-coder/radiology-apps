@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>คลังอุปกรณ์ Intervention</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-title" content="Neuro Intervention">
+<meta name="theme-color" content="#F8EEDD">
+<script>
+  // ===== แก้บรรทัดนี้บรรทัดเดียว: ลิงก์ /exec ของเว็บ Apps Script =====
+  const APP_URL = "https://script.google.com/macros/s/AKfycbwr7-GSbhMfUgFmNJyvbwGjAFc1OWLxMx-6j_Acsj-rhh98N6dLvTR6nELmBCQ25A/exec";
+  // ถ้าเปิดจากไอคอนบนหน้าจอโฮม ให้ไปที่เว็บจริงทันที
+  const fromIcon = new URLSearchParams(location.search).has("app")
+    || matchMedia("(display-mode: standalone)").matches || navigator.standalone;
+  if (fromIcon) location.replace(APP_URL);
+</script>
+<style>
+  body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;
+       background:#F8EEDD;font-family:system-ui,-apple-system,"Noto Sans Thai",sans-serif;color:#2B2B2B}
+  .card{text-align:center;padding:24px;max-width:360px}
+  img{width:180px;height:180px;border-radius:40px;box-shadow:0 8px 24px rgba(0,0,0,.12)}
+  h1{font-size:22px;margin:18px 0 6px}
+  a.btn{display:inline-block;margin:14px 0 22px;padding:12px 28px;border-radius:999px;background:#2B2B2B;color:#fff;text-decoration:none;font-weight:600}
+  .how{background:#fff8;border-radius:18px;padding:12px 16px;text-align:left;font-size:15px;line-height:1.6}
+</style>
+</head>
+<body>
+<div class="card">
+  <img src="icon-512.png" alt="Neuro Intervention">
+  <h1>คลังอุปกรณ์ Intervention</h1>
+  <a class="btn" id="open" href="#">เปิดเว็บ</a>
+  <div class="how">
+    <b>เพิ่มไอคอนลงหน้าจอโฮม</b><br>
+    <b>Android (Chrome):</b> กด ⋮ มุมขวาบน → “เพิ่มลงในหน้าจอหลัก”<br>
+    <b>iPhone (Safari):</b> กดปุ่มแชร์ □↑ → “เพิ่มไปยังหน้าจอโฮม”
+  </div>
+</div>
+<script>document.getElementById("open").href = APP_URL;</script>
+</body>
+</html>
