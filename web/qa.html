@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Daily QA ห้อง X-ray</title>
+<link rel="icon" type="image/png" href="../xray/favicon.png">
+<link rel="manifest" href="../xray/manifest.json">
+<link rel="apple-touch-icon" href="../xray/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="X-ray General">
+<meta name="theme-color" content="#FDE9BE">
+<script>
+// ใช้แทน google.script.run: เรียก Apps Script ผ่าน fetch แบบไม่ส่งคุกกี้ (เลี่ยงปัญหาล็อกอินหลายบัญชี)
+(function(){
+  var API = "https://script.google.com/macros/s/AKfycbxAFHfMwW_2rIuu4WTVpXhDxJfyp8MUlMkOG56onP9SHURg9g0G4Y4zuTdbKcmpNLdOpA/exec";
+  function mk(ok, no){
+    return new Proxy({}, { get: function(_, k){
+      if (k === 'withSuccessHandler') return function(h){ return mk(h, no); };
+      if (k === 'withFailureHandler') return function(h){ return mk(ok, h); };
+      if (k === 'withUserObject') return function(){ return mk(ok, no); };
+      return function(){
+        var args = Array.prototype.slice.call(arguments);
+        var fail = function(e){ if (no) no(e); else console.error(e); };
+        fetch(API, { method: 'POST', body: JSON.stringify({ fn: k, args: args }), credentials: 'omit', redirect: 'follow' })
+          .then(function(r){ return r.json(); })
+          .then(function(j){ if (j.ok) { if (ok) ok(j.result); } else fail(new Error(j.error)); })
+          .catch(function(){ fail(new Error('เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ ลองใหม่อีกครั้ง')); });
+      };
+    }});
+  }
+  window.google = { script: { run: mk() } };
+})();
+</script>
+
+<base target="_top">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Daily QA ห้อง X-ray</title>
+<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#fbf7ff; --card:#fff; --line:#eee6fb; --ink:#3d3550; --mute:#8a82a0;
+    --violet:#9b7ede; --violet-soft:#efe7ff; --pink:#f4a7c0; --pink-soft:#fde9f0;
+    --peach:#ffcfb0; --peach-soft:#fff1e6;
+    --ok:#3fae86; --ok-soft:#e3f6ee; --bad:#e2637a; --bad-soft:#fde6ea;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;font-family:'Prompt',sans-serif;background:var(--bg);color:var(--ink);font-size:15px}
+  header{position:sticky;top:0;z-index:5;background:linear-gradient(120deg,var(--violet-soft),var(--pink-soft) 60%,var(--peach-soft));
+    padding:12px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--line)}
+  .hb{border:0;background:#fff;color:var(--violet);font-size:18px;width:40px;height:40px;border-radius:14px;cursor:pointer;flex:none;box-shadow:0 1px 2px rgba(42,37,80,.06),0 6px 16px -10px rgba(80,60,160,.35)}
+  header h1{margin:0;font-size:18px;font-weight:600;flex:1}
+  main{max-width:760px;margin:0 auto;padding:14px 14px 110px}
+  .tabs{display:flex;background:#fff;border-radius:14px;padding:4px;border:1px solid var(--line);margin-bottom:14px}
+  .tabs button{flex:1;border:0;background:none;padding:10px;border-radius:10px;font:inherit;color:var(--mute);cursor:pointer}
+  .tabs button.on{background:var(--violet);color:#fff}
+  .hint{color:var(--mute);font-size:13px;margin:0 0 10px}
+  .rooms{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+  .room{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px 14px;cursor:pointer;text-align:left;font:inherit;color:inherit}
+  .room b{display:block;font-size:16px;font-weight:600;margin-bottom:8px}
+  .chip{display:inline-block;font-size:12px;padding:3px 9px;border-radius:99px;background:#f3f0f7;color:var(--mute)}
+  .chip.ok{background:var(--ok-soft);color:var(--ok)} .chip.bad{background:var(--bad-soft);color:var(--bad)}
+  .room small{display:block;color:var(--mute);font-size:12px;margin-top:6px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:12px}
+  .row2{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .row2 > *{flex:1;min-width:140px}
+  label.f{display:block;font-size:13px;color:var(--mute);margin-bottom:4px}
+  input,textarea,select{width:100%;font:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:#fff;color:var(--ink)}
+  input:focus,textarea:focus,select:focus{outline:2px solid var(--violet-soft);border-color:var(--violet)}
+  .grp{font-weight:600;color:var(--violet);margin:4px 0 6px;font-size:14px}
+  .item{display:flex;align-items:center;gap:8px;padding:8px 0;border-top:1px dashed var(--line)}
+  .item:first-of-type{border-top:0}
+  .item .nm{flex:1}
+  .pf{display:flex;gap:6px}
+  .pf button{width:46px;height:40px;border-radius:12px;border:1.5px solid var(--line);background:#fff;font-size:18px;cursor:pointer;color:var(--mute)}
+  .pf button.p.on{background:var(--ok);border-color:var(--ok);color:#fff}
+  .pf button.f.on{background:var(--bad);border-color:var(--bad);color:#fff}
+  .fnote{margin:0 0 6px;display:none} .fnote.show{display:block}
+  .fnote input{border-color:var(--bad-soft);background:#fffafb;font-size:14px;padding:8px 10px}
+  .btn{border:0;border-radius:14px;padding:12px 16px;font:inherit;font-weight:500;cursor:pointer}
+  .btn.ghost{background:var(--violet-soft);color:var(--violet)}
+  .btn.main{background:linear-gradient(120deg,var(--violet),var(--pink));color:#fff;width:100%;font-size:16px;padding:14px}
+  .btn:disabled{opacity:.55}
+  .bar{position:fixed;left:0;right:0;bottom:0;padding:10px 14px calc(10px + env(safe-area-inset-bottom));background:rgba(251,247,255,.95);border-top:1px solid var(--line);z-index:6}
+  .bar > div{max-width:760px;margin:0 auto}
+  .prog{font-size:13px;color:var(--mute);text-align:center;margin-bottom:6px}
+  .hidden{display:none!important}
+  .toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 16px;border-radius:12px;font-size:14px;z-index:20;max-width:90%;opacity:0;transition:.25s;pointer-events:none}
+  .toast.show{opacity:1}
+  .loading{text-align:center;color:var(--mute);padding:40px 0}
+  .tblwrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:#fff}
+  table.m{border-collapse:collapse;font-size:12px;min-width:100%}
+  table.m th,table.m td{border:1px solid var(--line);padding:4px;text-align:center;min-width:24px;height:26px}
+  table.m td.nm,table.m th.nm{text-align:left;position:sticky;left:0;background:#fff;min-width:150px;max-width:190px;white-space:normal;z-index:1}
+  table.m tr.g td{background:var(--violet-soft);color:var(--violet);font-weight:600;text-align:left}
+  table.m tr.g td.nm{background:var(--violet-soft)}
+  table.m td.P{color:var(--ok);font-weight:600} table.m td.F{color:#fff;background:var(--bad);cursor:pointer}
+  table.m td.by{font-size:10px;color:var(--mute);writing-mode:vertical-rl;height:60px}
+  table.m th.today{background:var(--peach-soft)}
+  .legend{font-size:12px;color:var(--mute);margin-top:8px}
+  .print-title{display:none}
+  @media print{
+    @page{size:A4 landscape;margin:8mm}
+    header,.tabs,.ctrl,.bar,.legend,.hint,.hx-dr,.hx-ov,.hx-load{display:none!important}
+    body{background:#fff} main{max-width:none;padding:0}
+    .print-title{display:block;text-align:center;font-weight:600;margin-bottom:6px}
+    .tblwrap{overflow:visible;border:0}
+    table.m{font-size:9px} table.m td.F{background:#fff;color:#000}
+  }
+</style>
+</head>
+<body>
+<!-- ===== เมนูขีด 3 ขีด ใช้ร่วมกันทุกหน้า (สไตล์แบบเว็บ Intervention) =====
+     ใส่ในหน้าเว็บด้วยคำสั่ง include('Nav', ...) ในแท็กสคริปต์เล็ต (ดูบรรทัดแรกหลัง <body> ของ Leave.html)
+     เปิด/ปิดด้วย hxOpen() / hxClose()  คลาสทั้งหมดขึ้นต้นด้วย hx- จะได้ไม่ชนกับสไตล์ของแต่ละหน้า -->
+<style>
+.hx-ov{position:fixed;inset:0;background:rgba(15,23,42,.4);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);z-index:900;opacity:0;pointer-events:none;transition:opacity .25s}
+.hx-ov.hx-on{opacity:1;pointer-events:auto}
+.hx-dr{position:fixed;top:0;left:0;bottom:0;width:288px;max-width:86%;background:#fff;z-index:901;box-shadow:0 25px 50px -12px rgba(76,52,170,.35);
+  border-right:1px solid #F0ECFC;border-radius:0 28px 28px 0;padding:20px 18px calc(18px + env(safe-area-inset-bottom,0px));padding-top:calc(20px + env(safe-area-inset-top,0px));
+  display:flex;flex-direction:column;justify-content:space-between;transform:translateX(-105%);transition:transform .3s ease-in-out;will-change:transform;
+  font-family:'Prompt','Sarabun',system-ui,sans-serif;color:#334155;box-sizing:border-box;overflow-y:auto}
+.hx-dr.hx-on{transform:none}
+.hx-dr *{box-sizing:border-box}
+.hx-hd{display:flex;align-items:center;justify-content:space-between;padding-bottom:14px;border-bottom:1px solid #f1f5f9;margin-bottom:18px}
+.hx-brand{display:flex;align-items:center;gap:10px}
+.hx-logo{width:40px;height:40px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:20px;background:linear-gradient(135deg,#EDE8FF,#FFE4EC);box-shadow:inset 0 1px 0 #fff,0 4px 10px rgba(147,129,255,.18)}
+.hx-brand b{display:block;font-size:14px;color:#2A2550;line-height:1.2}
+.hx-brand small{display:block;font-size:11px;color:#94a3b8}
+.hx-x{border:0;background:transparent;color:#94a3b8;font-size:26px;line-height:1;cursor:pointer;padding:4px 6px;border-radius:10px}
+.hx-x:hover{color:#475569;background:#f8fafc}
+.hx-cap{font-size:11px;font-weight:700;color:#a5a0c8;letter-spacing:.04em;margin:0 4px 8px}
+.hx-list{display:flex;flex-direction:column;gap:8px}
+.hx-it{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:18px;text-decoration:none;color:#475569;transition:background .15s,transform .1s;-webkit-tap-highlight-color:transparent}
+.hx-it:hover{background:#f8f7ff}
+.hx-it:active{transform:scale(.98)}
+.hx-ic{width:40px;height:40px;flex:none;border-radius:13px;display:flex;align-items:center;justify-content:center;font-size:19px;box-shadow:inset 0 1px 0 rgba(255,255,255,.8)}
+.hx-violet .hx-ic{background:#EDE8FF}.hx-peach .hx-ic{background:#FFE9DA}.hx-mint .hx-ic{background:#DDF7EE}.hx-sky .hx-ic{background:#DCEBFF}
+.hx-tx{min-width:0;flex:1}
+.hx-tx b{display:block;font-size:14px;font-weight:700;color:#1e293b}
+.hx-tx small{display:block;font-size:11px;color:#94a3b8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hx-it.hx-act{background:linear-gradient(100deg,#7C5CFF 0%,#B57BFF 52%,#FF9EB0 100%);box-shadow:0 8px 18px -6px rgba(139,108,255,.55)}
+.hx-it.hx-act .hx-ic{background:rgba(255,255,255,.28);box-shadow:none}
+.hx-it.hx-act .hx-tx b,.hx-it.hx-act .hx-tx small{color:#fff}
+.hx-dot{width:8px;height:8px;border-radius:50%;background:#fff;flex:none;box-shadow:0 0 0 3px rgba(255,255,255,.35)}
+.hx-ft{font-size:11px;color:#94a3b8;text-align:center;margin-top:20px}
+.hx-load{display:none;position:fixed;inset:0;z-index:950;align-items:center;justify-content:center;background:rgba(255,255,255,.55)}
+.hx-load.hx-on{display:flex}
+.hx-spin{width:38px;height:38px;border-radius:50%;border:4px solid #EDE8FF;border-top-color:#7C5CFF;animation:hxs .8s linear infinite}
+@keyframes hxs{to{transform:rotate(360deg)}}
+</style>
+
+<div class="hx-ov" id="hxOv" onclick="hxClose()"></div>
+<aside class="hx-dr" id="hxDr" aria-hidden="true">
+  <div>
+    <div class="hx-hd">
+      <div class="hx-brand">
+        <span class="hx-logo">🏥</span>
+        <span><b>งานรังสีวิทยา</b><small>โรงพยาบาลระยอง</small></span>
+      </div>
+      <button type="button" class="hx-x" onclick="hxClose()" aria-label="ปิดเมนู">&times;</button>
+    </div>
+    <div class="hx-cap">เลือกระบบ</div>
+    <div class="hx-list">
+      
+      <a class="hx-it hx-violet" href="./" target="_top" data-act="0">
+        <span class="hx-ic">📅</span>
+        <span class="hx-tx"><b>ระบบใบลา</b><small>ปฏิทินการลา · พิมพ์ใบลา PDF</small></span>
+        
+      </a>
+      
+      <a class="hx-it hx-peach" href="./xray.html" target="_top" data-act="0">
+        <span class="hx-ic">📦</span>
+        <span class="hx-tx"><b>คลังสินค้า X-ray</b><small>รับเข้า · เบิกใช้ · ของรออบ</small></span>
+        
+      </a>
+      
+      <a class="hx-it hx-mint hx-act" href="./qa.html" target="_top" data-act="1">
+        <span class="hx-ic">✅</span>
+        <span class="hx-tx"><b>Daily QA ห้อง X-ray</b><small>เช็กเครื่องรายวัน · ดูย้อนหลัง</small></span>
+        <span class="hx-dot"></span>
+      </a>
+      
+    </div>
+  </div>
+  <div class="hx-ft">รพ.ระยอง · กลุ่มงานรังสีวิทยา</div>
+</aside>
+<div class="hx-load" id="hxLoad"><div class="hx-spin"></div></div>
+
+<script>
+(function () {
+  var dr = document.getElementById('hxDr'), ov = document.getElementById('hxOv');
+  window.hxOpen = function () { dr.classList.add('hx-on'); ov.classList.add('hx-on'); dr.setAttribute('aria-hidden', 'false'); };
+  window.hxClose = function () { dr.classList.remove('hx-on'); ov.classList.remove('hx-on'); dr.setAttribute('aria-hidden', 'true'); };
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') hxClose(); });
+  // กดระบบที่เปิดอยู่แล้ว = แค่ปิดเมนู / กดระบบอื่น = แสดงวงหมุนระหว่างเปลี่ยนหน้า
+  dr.addEventListener('click', function (e) {
+    var a = e.target.closest('.hx-it');
+    if (!a) return;
+    if (a.dataset.act === '1') { e.preventDefault(); hxClose(); return; }
+    document.getElementById('hxLoad').classList.add('hx-on');
+  });
+  // ปัดซ้ายเพื่อปิดเมนู (มือถือ)
+  var sx = null;
+  dr.addEventListener('touchstart', function (e) { sx = e.touches[0].clientX; }, { passive: true });
+  dr.addEventListener('touchend', function (e) { if (sx !== null && sx - e.changedTouches[0].clientX > 60) hxClose(); sx = null; });
+  // กลับมาหน้าเดิมด้วยปุ่ม Back ของเบราว์เซอร์ ให้ซ่อนวงหมุน
+  window.addEventListener('pageshow', function () { document.getElementById('hxLoad').classList.remove('hx-on'); });
+})();
+</script>
+
+<header>
+  <button class="hb" id="hbBtn" onclick="hbClick()" aria-label="เมนู">☰</button>
+  <h1 id="title">Daily QA ห้อง X-ray</h1>
+</header>
+
+<main>
+  <div id="loading" class="loading">กำลังโหลด…</div>
+
+  <!-- หน้าเลือกห้อง -->
+  <section id="vHome" class="hidden">
+    <div class="tabs">
+      <button id="tCheck" class="on" onclick="showTab('check')">เช็กวันนี้</button>
+      <button id="tHist" onclick="showTab('hist')">ดูย้อนหลัง</button>
+    </div>
+    <div id="paneCheck">
+      <p class="hint" id="todayText"></p>
+      <div class="rooms" id="rooms"></div>
+    </div>
+    <div id="paneHist" class="hidden">
+      <div class="card ctrl">
+        <div class="row2">
+          <div><label class="f">ห้อง</label><select id="hRoom"></select></div>
+          <div><label class="f">เดือน</label><input type="month" id="hMonth"></div>
+        </div>
+        <div class="row2" style="margin-top:10px">
+          <button class="btn ghost" onclick="loadMonth()">แสดง</button>
+          <button class="btn ghost" onclick="window.print()">🖨️ พิมพ์</button>
+        </div>
+      </div>
+      <div class="print-title" id="printTitle"></div>
+      <div id="monthBox"></div>
+    </div>
+  </section>
+
+  <!-- หน้าเช็ก -->
+  <section id="vCheck" class="hidden">
+    <div class="card">
+      <div class="row2">
+        <div><label class="f">วันที่</label><input type="date" id="cDate" onchange="changeDate()"></div>
+        <div><label class="f">ผู้ปฏิบัติงาน</label><input id="cBy" placeholder="ชื่อผู้เช็ก" maxlength="60"></div>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;margin:-2px 0 10px">
+      <button class="btn ghost" onclick="allPass()">✓ ผ่านทั้งหมด</button>
+    </div>
+    <div id="itemsBox"></div>
+    <div class="card">
+      <label class="f">หมายเหตุ (ถ้ามี)</label>
+      <textarea id="cNote" rows="2" maxlength="300"></textarea>
+    </div>
+  </section>
+</main>
+
+<div class="bar hidden" id="saveBar"><div>
+  <div class="prog" id="prog"></div>
+  <button class="btn main" id="saveBtn" onclick="save()">บันทึก</button>
+</div></div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let S = { rooms:[], items:[], today:'', todayRec:{} };
+let inCheck = false;
+// ปุ่มซ้ายบน: หน้าเลือกห้อง = เปิดเมนู ☰ / หน้าเช็ก = ย้อนกลับ
+function hbClick(){ if (inCheck) backHome(); else hxOpen(); }
+let cur = { room:'', results:{}, notes:{} };
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const key = it => it.g + ' › ' + it.n;
+const itemsFor = room => S.items.filter(it => !it.rooms.length || it.rooms.indexOf(room) >= 0);
+const TH_M = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+const thDate = s => { const p = s.split('-').map(Number); return p[2] + ' ' + TH_M[p[1]-1] + ' ' + (p[0]+543); };
+
+function toast(msg, ms){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('show'), ms||2200); }
+function store(k,v){ try{ if(v===undefined) return localStorage.getItem(k); localStorage.setItem(k,v);}catch(e){ return null; } }
+
+/* ---------- โหลดครั้งเดียว ---------- */
+google.script.run
+  .withSuccessHandler(d => {
+    S = d;
+    $('loading').classList.add('hidden');
+    $('vHome').classList.remove('hidden');
+    $('todayText').textContent = 'วันนี้ ' + thDate(d.today) + ' — เลือกห้องที่จะเช็ก';
+    $('hRoom').innerHTML = d.rooms.map(r => '<option>'+esc(r)+'</option>').join('');
+    $('hMonth').value = d.today.slice(0,7);
+    renderRooms();
+    const last = store('qa_by'); if (last) $('cBy').value = last;
+  })
+  .withFailureHandler(e => { $('loading').textContent = 'โหลดไม่สำเร็จ: ' + e.message; })
+  .qaInit();
+
+function showTab(t){
+  $('tCheck').classList.toggle('on', t==='check');
+  $('tHist').classList.toggle('on', t==='hist');
+  $('paneCheck').classList.toggle('hidden', t!=='check');
+  $('paneHist').classList.toggle('hidden', t!=='hist');
+  if (t==='hist' && !$('monthBox').innerHTML) loadMonth();
+}
+
+function renderRooms(){
+  if (!S.rooms.length){ $('rooms').innerHTML = '<p class="hint">ยังไม่มีห้อง — เพิ่มได้ที่ชีต QA_Rooms</p>'; return; }
+  $('rooms').innerHTML = S.rooms.map((r,i) => {
+    const rec = S.todayRec[r];
+    let chip = '<span class="chip">ยังไม่เช็ก</span>', sub = '';
+    if (rec){
+      chip = rec.summary === 'ผ่านทั้งหมด' ? '<span class="chip ok">✓ ผ่านทั้งหมด</span>' : '<span class="chip bad">⚠ '+esc(rec.summary)+'</span>';
+      sub = '<small>'+esc(rec.time)+' น. · '+esc(rec.by)+'</small>';
+    }
+    return '<button class="room" onclick="openRoom('+i+')"><b>'+esc(r)+'</b>'+chip+sub+'</button>';
+  }).join('');
+}
+
+/* ---------- หน้าเช็ก ---------- */
+function openRoom(i){
+  cur.room = S.rooms[i];
+  $('title').textContent = cur.room;
+  $('cDate').value = S.today; $('cDate').max = S.today;
+  fillFrom(S.todayRec[cur.room]);
+  $('vHome').classList.add('hidden'); $('vCheck').classList.remove('hidden'); $('saveBar').classList.remove('hidden');
+  inCheck = true; $('hbBtn').textContent = '‹'; $('hbBtn').setAttribute('aria-label','กลับ');
+  window.scrollTo(0,0);
+}
+
+function backHome(){
+  $('title').textContent = 'Daily QA ห้อง X-ray';
+  $('vCheck').classList.add('hidden'); $('saveBar').classList.add('hidden'); $('vHome').classList.remove('hidden');
+  inCheck = false; $('hbBtn').textContent = '☰'; $('hbBtn').setAttribute('aria-label','เมนู');
+  renderRooms();
+}
+
+function fillFrom(rec){
+  cur.results = rec ? Object.assign({}, rec.results) : {};
+  cur.notes = rec ? Object.assign({}, rec.notes) : {};
+  $('cNote').value = rec ? rec.note : '';
+  if (rec && rec.by) $('cBy').value = rec.by;
+  $('saveBtn').textContent = rec ? 'บันทึกแก้ไข' : 'บันทึก';
+  renderItems();
+}
+
+function changeDate(){
+  const d = $('cDate').value;
+  if (!d) return;
+  if (d > S.today){ $('cDate').value = S.today; toast('เลือกวันล่วงหน้าไม่ได้'); return; }
+  if (d === S.today){ fillFrom(S.todayRec[cur.room]); return; }
+  $('itemsBox').innerHTML = '<div class="loading">กำลังโหลด…</div>';
+  google.script.run
+    .withSuccessHandler(rec => { fillFrom(rec); if (rec) toast('มีบันทึกของวันนี้แล้ว — แก้ไขได้'); })
+    .withFailureHandler(e => { toast(e.message); fillFrom(null); })
+    .qaGetDay(cur.room, d);
+}
+
+function renderItems(){
+  const list = itemsFor(cur.room);
+  const groups = [];
+  list.forEach(it => { let g = groups.find(x => x.g === it.g); if (!g){ g = {g:it.g, items:[]}; groups.push(g); } g.items.push(it); });
+  $('itemsBox').innerHTML = groups.map(g =>
+    '<div class="card"><div class="grp">'+esc(g.g)+'</div>' +
+    g.items.map(it => {
+      const k = key(it), v = cur.results[k], id = btoa(unescape(encodeURIComponent(k))).replace(/=/g,'');
+      return '<div class="item"><div class="nm">'+esc(it.n)+'</div><div class="pf">' +
+        '<button class="p'+(v==='P'?' on':'')+'" data-k="'+esc(k)+'" data-v="P" onclick="mark(this)">✓</button>' +
+        '<button class="f'+(v==='F'?' on':'')+'" data-k="'+esc(k)+'" data-v="F" onclick="mark(this)">✗</button>' +
+        '</div></div>' +
+        '<div class="fnote'+(v==='F'?' show':'')+'" id="n_'+id+'"><input placeholder="ปัญหาที่พบ / แจ้งใคร" maxlength="200" data-k="'+esc(k)+'" value="'+esc(cur.notes[k]||'')+'" oninput="cur.notes[this.dataset.k]=this.value"></div>';
+    }).join('') + '</div>'
+  ).join('');
+  updateProg();
+}
+
+function mark(btn){
+  const k = btn.dataset.k, v = btn.dataset.v;
+  cur.results[k] = v;
+  const pf = btn.parentNode;
+  pf.querySelector('.p').classList.toggle('on', v==='P');
+  pf.querySelector('.f').classList.toggle('on', v==='F');
+  const note = pf.parentNode.nextElementSibling;
+  note.classList.toggle('show', v==='F');
+  if (v==='F') note.querySelector('input').focus();
+  updateProg();
+}
+
+function allPass(){
+  itemsFor(cur.room).forEach(it => { if (cur.results[key(it)] !== 'F') cur.results[key(it)] = 'P'; });
+  renderItems();
+  toast('ตั้งเป็นผ่านแล้ว (ยกเว้นข้อที่กด ✗ ไว้)');
+}
+
+function updateProg(){
+  const list = itemsFor(cur.room);
+  const done = list.filter(it => cur.results[key(it)]).length;
+  const bad = list.filter(it => cur.results[key(it)]==='F').length;
+  $('prog').textContent = 'เช็กแล้ว ' + done + '/' + list.length + (bad ? ' · ไม่ผ่าน ' + bad : '');
+}
+
+function save(){
+  const list = itemsFor(cur.room);
+  const miss = list.find(it => !cur.results[key(it)]);
+  if (miss){ toast('ยังไม่ได้เช็ก: ' + miss.n); return; }
+  const by = $('cBy').value.trim();
+  if (!by){ toast('กรุณาใส่ชื่อผู้ปฏิบัติงาน'); $('cBy').focus(); return; }
+  const btn = $('saveBtn'); btn.disabled = true; btn.textContent = 'กำลังบันทึก…';
+  const notes = {}; list.forEach(it => { const k = key(it); if (cur.results[k]==='F' && cur.notes[k]) notes[k] = cur.notes[k]; });
+  google.script.run
+    .withSuccessHandler(rec => {
+      btn.disabled = false;
+      store('qa_by', by);
+      if (rec.date === S.today) S.todayRec[cur.room] = rec;
+      $('monthBox').innerHTML = '';
+      toast('บันทึกแล้ว ✓');
+      backHome();
+    })
+    .withFailureHandler(e => { btn.disabled = false; btn.textContent = 'บันทึก'; toast('บันทึกไม่สำเร็จ: ' + e.message, 3500); })
+    .qaSave({ room: cur.room, date: $('cDate').value, by: by, results: cur.results, notes: notes, note: $('cNote').value });
+}
+
+/* ---------- ดูย้อนหลังรายเดือน ---------- */
+let monthData = null;
+function loadMonth(){
+  const room = $('hRoom').value, ym = $('hMonth').value;
+  if (!room || !ym) return;
+  $('monthBox').innerHTML = '<div class="loading">กำลังโหลด…</div>';
+  google.script.run
+    .withSuccessHandler(d => { monthData = d; renderMonth(); })
+    .withFailureHandler(e => { $('monthBox').innerHTML = '<p class="hint">'+esc(e.message)+'</p>'; })
+    .qaGetMonth(room, ym);
+}
+
+function renderMonth(){
+  const d = monthData, p = d.ym.split('-').map(Number);
+  const nDays = new Date(p[0], p[1], 0).getDate();
+  const list = itemsFor(d.room);
+  const todayDay = S.today.slice(0,7) === d.ym ? Number(S.today.slice(8)) : 0;
+  $('printTitle').textContent = 'Daily Check list ' + d.room + ' ประจำเดือน ' + TH_M[p[1]-1] + ' ' + (p[0]+543);
+  let h = '<div class="tblwrap"><table class="m"><tr><th class="nm">รายการ</th>';
+  for (let i=1;i<=nDays;i++) h += '<th'+(i===todayDay?' class="today"':'')+'>'+i+'</th>';
+  h += '</tr>';
+  let lastG = '';
+  list.forEach(it => {
+    if (it.g !== lastG){ lastG = it.g; h += '<tr class="g"><td class="nm">'+esc(it.g)+'</td><td colspan="'+nDays+'"></td></tr>'; }
+    const k = key(it);
+    h += '<tr><td class="nm">'+esc(it.n)+'</td>';
+    for (let i=1;i<=nDays;i++){
+      const v = d.days[i] && d.days[i].results[k];
+      h += v==='P' ? '<td class="P">✓</td>' : v==='F' ? '<td class="F" data-d="'+i+'" data-k="'+esc(k)+'" onclick="showFail(this)">✗</td>' : '<td></td>';
+    }
+    h += '</tr>';
+  });
+  h += '<tr><td class="nm">ผู้ปฏิบัติงาน</td>';
+  for (let i=1;i<=nDays;i++) h += '<td class="by">'+(d.days[i] ? esc(d.days[i].by) : '')+'</td>';
+  h += '</tr></table></div>';
+  const cnt = Object.keys(d.days).length;
+  h += '<p class="legend">เช็กแล้ว '+cnt+' วัน · แตะช่อง ✗ เพื่อดูปัญหาที่บันทึกไว้</p>';
+  $('monthBox').innerHTML = h;
+}
+
+function showFail(td){
+  const rec = monthData.days[td.dataset.d];
+  const n = rec.notes[td.dataset.k];
+  toast('วันที่ '+td.dataset.d+': '+(n || 'ไม่ได้ระบุปัญหา')+' — '+rec.by, 4000);
+}
+</script>
+</body>
+</html>
