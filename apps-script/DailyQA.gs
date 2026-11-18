@@ -251,7 +251,7 @@ function qaTodayStore_(today) {
 function qaInit() {
   const cfg = qaConfig_();
   const today = qaFmt_(new Date(), 'yyyy-MM-dd');
-  return { rooms: cfg.rooms, items: cfg.items, today: today, todayRec: qaTodayStore_(today) };
+  return { rooms: cfg.rooms, items: cfg.items, today: today, todayRec: qaTodayStore_(today), staff: qaStaff_() };
 }
 
 /** ดึงบันทึกของห้อง+วันที่ */
@@ -260,6 +260,14 @@ function qaGetDay(room, dateStr) {
   const sh = qaMonthSheet_(room, d, false);
   if (!sh) return null;
   return qaDayRec_(qaGrid_(sh), room, dateStr.slice(0, 7), d.getDate());
+}
+
+/** รายชื่อเจ้าหน้าที่ (ชีต People ของระบบใบลา) ใช้เป็นตัวเลือก "ผู้ปฏิบัติงาน" */
+function qaStaff_() {
+  try {
+    const names = read_('People', PCOLS).map(p => String(p.name || '').trim()).filter(Boolean);
+    return names.filter((n, i) => names.indexOf(n) === i).sort((a, b) => a.localeCompare(b, 'th'));
+  } catch (e) { return []; }
 }
 
 /** บันทึก (ห้องเดียวกัน วันเดียวกัน = แก้ทับของเดิม) */
