@@ -39,12 +39,9 @@ function qaSS_() {
 function qaEnsure_(ss) {
   if (!ss.getSheetByName('QA_Rooms')) {
     const sh = ss.insertSheet('QA_Rooms');
-    sh.getRange(1, 1, 4, 2).setValues([
-      ['ห้อง', 'สถานะ (ใช้งาน / ปิด)'],
-      ['ห้อง X-ray 1', 'ใช้งาน'],
-      ['ห้อง X-ray 2', 'ใช้งาน'],
-      ['ห้อง X-ray 3', 'ใช้งาน']
-    ]);
+    const rooms = ['ห้อง 2', 'ห้อง 3', 'ห้อง 6', 'ห้องฟลู', 'ห้องฟัน', 'เกาะหวาย', 'เนินพระ', 'ตะพง'];
+    sh.getRange(1, 1, rooms.length + 1, 2).setValues(
+      [['ห้อง', 'สถานะ (ใช้งาน / ปิด)']].concat(rooms.map(r => [r, 'ใช้งาน'])));
     sh.setFrozenRows(1);
     sh.getRange(1, 1, 1, 2).setFontWeight('bold').setBackground('#efe7ff');
     sh.setColumnWidth(1, 180); sh.setColumnWidth(2, 160);
