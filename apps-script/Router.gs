@@ -48,7 +48,8 @@ const API_FUNCS = [
   'uploadPdfTemplate', 'getPdfTemplateBase64',
   'getAppData', 'processStockTransaction', 'returnFromSterile', 'deleteInventoryItem',
   'linkBarcode', 'unlinkBarcode', 'getHistory', 'saveEmergencyCheck', 'getEmergencyLogs',
-  'qaInit', 'qaGetDay', 'qaSave', 'qaGetMonth'
+  'qaInit', 'qaGetDay', 'qaSave', 'qaGetMonth',
+  'saveEmergencyShiftCheck', 'exportEmergencyMonth'
 ];
 
 function doPost(e) {
