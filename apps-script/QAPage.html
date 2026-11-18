@@ -119,7 +119,7 @@
     <div class="card">
       <div class="row2">
         <div><label class="f">วันที่</label><input type="date" id="cDate" onchange="changeDate()"></div>
-        <div><label class="f">ผู้ปฏิบัติงาน</label><input id="cBy" placeholder="ชื่อผู้เช็ก" maxlength="60"></div>
+        <div><label class="f">ผู้ปฏิบัติงาน</label><select id="cBy"><option value="">— เลือกชื่อเจ้าหน้าที่ —</option></select></div>
       </div>
     </div>
     <div style="display:flex;justify-content:flex-end;margin:-2px 0 10px">
@@ -167,10 +167,19 @@ google.script.run
     $('hRoom').innerHTML = d.rooms.map(r => '<option>'+esc(r)+'</option>').join('');
     $('hMonth').value = d.today.slice(0,7);
     renderRooms();
-    const last = store('qa_by'); if (last) $('cBy').value = last;
+    $('cBy').innerHTML = '<option value="">— เลือกชื่อเจ้าหน้าที่ —</option>' + (d.staff||[]).map(n => '<option>'+esc(n)+'</option>').join('');
+    setBy(store('qa_by'));
   })
   .withFailureHandler(e => { $('loading').textContent = 'โหลดไม่สำเร็จ: ' + e.message; })
   .qaInit();
+
+// เลือกชื่อผู้เช็ก (ถ้าชื่อเก่าไม่อยู่ในรายชื่อเจ้าหน้าที่ ให้เพิ่มเข้าไปเพื่อแสดง)
+function setBy(name){
+  if (!name) return;
+  const sel = $('cBy');
+  if (![...sel.options].some(o => o.value === name)) { const o = document.createElement('option'); o.textContent = name; sel.appendChild(o); }
+  sel.value = name;
+}
 
 function showTab(t){
   $('tCheck').classList.toggle('on', t==='check');
@@ -215,7 +224,7 @@ function fillFrom(rec){
   cur.results = rec ? Object.assign({}, rec.results) : {};
   cur.notes = rec ? Object.assign({}, rec.notes) : {};
   $('cNote').value = rec ? rec.note : '';
-  if (rec && rec.by) $('cBy').value = rec.by;
+  if (rec && rec.by) setBy(rec.by);
   $('saveBtn').textContent = rec ? 'บันทึกแก้ไข' : 'บันทึก';
   renderItems();
 }
@@ -280,7 +289,7 @@ function save(){
   const miss = list.find(it => !cur.results[key(it)]);
   if (miss){ toast('ยังไม่ได้เช็ก: ' + miss.n); return; }
   const by = $('cBy').value.trim();
-  if (!by){ toast('กรุณาใส่ชื่อผู้ปฏิบัติงาน'); $('cBy').focus(); return; }
+  if (!by){ toast('กรุณาเลือกชื่อผู้ปฏิบัติงาน'); $('cBy').focus(); return; }
   const btn = $('saveBtn'); btn.disabled = true; btn.textContent = 'กำลังบันทึก…';
   const notes = {}; list.forEach(it => { const k = key(it); if (cur.results[k]==='F' && cur.notes[k]) notes[k] = cur.notes[k]; });
   google.script.run
