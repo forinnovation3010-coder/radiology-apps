@@ -336,7 +336,7 @@
 
                 <div id="emergencyCheckBtnContainer" class="hidden flex gap-2">
                     <button onclick="openEmergencyCheckModal()" class="flex-1 bg-[#DFF6EC] text-[#1F7A5A] border border-[#BDEBD6] font-bold text-sm py-3 rounded-2xl flex items-center justify-center gap-1.5 active:scale-95 transition">📋 เช็คสต๊อก</button>
-                    <button onclick="printEmergencyReport()" class="flex-1 bg-white text-[#6D4DF2] border border-[#ECE6FB] font-bold text-sm py-3 rounded-2xl flex items-center justify-center gap-1.5 active:scale-95 transition">📊 แบบฟอร์มรายเดือน</button>
+                    <button onclick="printEmergencyReport()" class="flex-1 bg-white text-[#6D4DF2] border border-[#ECE6FB] font-bold text-sm py-3 rounded-2xl flex items-center justify-center gap-1.5 active:scale-95 transition">📊 แบบฟอร์มรายปี</button>
                 </div>
 
                 <div id="inventoryList" class="pb-1"></div>
@@ -1368,9 +1368,8 @@
         }
 
         // ================= รถ Emergency =================
-        // ---------- รถ Emergency: เช็กรายเวร ด/ช/บ ----------
+        // ---------- รถ Emergency: เช็กเดือนละครั้ง ----------
         function emerEsc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
-        function emerShiftNow(){ const h = new Date().getHours(); return h < 8 ? 'ด' : (h < 16 ? 'ช' : 'บ'); }
         function emerToday(){ const t = new Date(); return t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0'); }
 
         function openEmergencyCheckModal() {
@@ -1389,9 +1388,8 @@
 
           const today = emerToday();
           const field = 'width:100%;padding:9px 10px;border:1px solid #e3dcf5;border-radius:12px;background:#fff;font:inherit';
-          let h = '<div style="display:flex;gap:8px;margin-bottom:10px">' +
-            '<input type="date" id="emerDate" value="' + today + '" max="' + today + '" style="' + field + '">' +
-            '<select id="emerShift" style="' + field + '"><option value="ด">เวรดึก (ด)</option><option value="ช">เวรเช้า (ช)</option><option value="บ">เวรบ่าย (บ)</option></select></div>';
+          let h = '<div style="margin-bottom:10px"><div style="font-size:12px;color:#9a8fb5;margin-bottom:4px">วันที่เช็ก (เดือนละครั้ง เช็กซ้ำในเดือนเดียวกัน ระบบใช้ผลล่าสุด)</div>' +
+            '<input type="date" id="emerDate" value="' + today + '" max="' + today + '" style="' + field + '"></div>';
           if (!order.length) h += '<p style="color:#999;text-align:center;padding:16px">ยังไม่มีของในคลังรถ Emergency</p>';
           order.forEach((n, i) => {
             h += '<div class="emer-row" style="padding:8px 0;border-bottom:1px solid #f3eefb">' +
@@ -1403,7 +1401,6 @@
           });
           h += '<textarea id="emerNote" rows="2" maxlength="500" placeholder="หมายเหตุ เช่น ของใกล้หมดอายุ / ส่งเปลี่ยนแล้ว" style="' + field + ';margin-top:10px"></textarea>';
           document.getElementById('emergencyChecklist').innerHTML = h;
-          document.getElementById('emerShift').value = emerShiftNow();
           document.getElementById('emergencyCheckModal').classList.remove('hidden');
         }
 
@@ -1413,7 +1410,6 @@
           const list = window._emerItems || [];
           if (!list.length) { toast('ไม่มีรายการให้เช็ก'); return; }
           const date = document.getElementById('emerDate').value;
-          const shift = document.getElementById('emerShift').value;
           if (!date) { toast('กรุณาเลือกวันที่'); return; }
           const items = Array.prototype.map.call(document.querySelectorAll('#emergencyChecklist .emer-check-item'), cb => {
             const it = list[Number(cb.dataset.i)];
@@ -1428,24 +1424,24 @@
           google.script.run
             .withSuccessHandler(res => { btn.disabled = false; btn.textContent = old; closeEmergencyModal(); toast((res && res.message) || 'บันทึกแล้ว'); })
             .withFailureHandler(e => { btn.disabled = false; btn.textContent = old; toast('บันทึกไม่สำเร็จ: ' + ((e && e.message) || e)); })
-            .saveEmergencyShiftCheck({ date: date, shift: shift, operator: op, items: items, note: note });
+            .saveEmergencyShiftCheck({ date: date, operator: op, items: items, note: note });
         }
 
         function closeEmergencyModal() { $('emergencyCheckModal').classList.add('hidden'); }
 
-        // ปุ่ม "📊 แบบฟอร์มรายเดือน": เปิด Google Sheet แท็บของเดือนที่เลือก
+        // ปุ่ม "📊 แบบฟอร์มรายปี": เปิด Google Sheet แท็บปีงบประมาณ
         function printEmergencyReport() {
           const now = new Date();
-          const def = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
-          const ym = prompt('แบบฟอร์มเดือนไหน? (ปี ค.ศ.-เดือน เช่น ' + def + ')', def);
-          if (!ym) return;
-          if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(ym.trim())) { toast('รูปแบบเดือนไม่ถูกต้อง เช่น ' + def); return; }
+          const fy = (now.getMonth() >= 9 ? now.getFullYear() + 1 : now.getFullYear()) + 543;
+          const v = prompt('แบบฟอร์มปีงบประมาณไหน? (พ.ศ. เช่น ' + fy + ')', String(fy));
+          if (!v) return;
+          if (!/^25\d\d$/.test(v.trim())) { toast('ใส่ปีงบประมาณเป็น พ.ศ. เช่น ' + fy); return; }
           const w = window.open('', '_blank');
           if (w) w.document.write('<p style="font-family:sans-serif;padding:24px">กำลังสร้างแบบฟอร์ม…</p>');
           google.script.run
             .withSuccessHandler(r => { if (w) w.location.href = r.url; else location.href = r.url; })
             .withFailureHandler(e => { if (w) w.close(); toast('สร้างแบบฟอร์มไม่สำเร็จ: ' + ((e && e.message) || e)); })
-            .exportEmergencyMonth(ym.trim());
+            .exportEmergencyMonth(v.trim());
         }
     </script>
 </body>
