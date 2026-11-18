@@ -2,7 +2,7 @@
   "name": "คลังสินค้า X-ray",
   "short_name": "X-ray General",
   "start_url": "./?app=1",
-  "scope": "./",
+  "scope": "../",
   "display": "standalone",
   "background_color": "#FDE9BE",
   "theme_color": "#FDE9BE",
@@ -25,5 +25,6 @@
       "type": "image/png",
       "purpose": "maskable"
     }
-  ]
+  ],
+  "id": "./"
 }
