@@ -336,7 +336,7 @@
 
                 <div id="emergencyCheckBtnContainer" class="hidden flex gap-2">
                     <button onclick="openEmergencyCheckModal()" class="flex-1 bg-[#DFF6EC] text-[#1F7A5A] border border-[#BDEBD6] font-bold text-sm py-3 rounded-2xl flex items-center justify-center gap-1.5 active:scale-95 transition">📋 เช็คสต๊อก</button>
-                    <button onclick="printEmergencyReport()" class="flex-1 bg-white text-[#6D4DF2] border border-[#ECE6FB] font-bold text-sm py-3 rounded-2xl flex items-center justify-center gap-1.5 active:scale-95 transition">🖨️ พิมพ์รายงาน</button>
+                    <button onclick="printEmergencyReport()" class="flex-1 bg-white text-[#6D4DF2] border border-[#ECE6FB] font-bold text-sm py-3 rounded-2xl flex items-center justify-center gap-1.5 active:scale-95 transition">📊 แบบฟอร์มรายเดือน</button>
                 </div>
 
                 <div id="inventoryList" class="pb-1"></div>
@@ -1368,109 +1368,84 @@
         }
 
         // ================= รถ Emergency =================
+        // ---------- รถ Emergency: เช็กรายเวร ด/ช/บ ----------
+        function emerEsc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+        function emerShiftNow(){ const h = new Date().getHours(); return h < 8 ? 'ด' : (h < 16 ? 'ช' : 'บ'); }
+        function emerToday(){ const t = new Date(); return t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0'); }
+
         function openEmergencyCheckModal() {
-            $('emergencyCheckOperator').innerHTML = $('operatorSelect').innerHTML;
-            $('emergencyCheckOperator').value = $('operatorSelect').value;
-            const checklistContainer = $('emergencyChecklist');
-            const totals = {};
-            (appData.inventory || []).forEach(item => {
-                if (isEmer(item.room)) totals[item.name] = (totals[item.name] || 0) + (parseInt(item.qty) || 0);
-            });
-            const names = Object.keys(totals);
-            if (names.length === 0) {
-                checklistContainer.innerHTML = '<p class="text-center text-sm text-[#8A85A8] py-4">ไม่มีสินค้าในระบบของคลังนี้</p>';
-            } else {
-                checklistContainer.innerHTML = names.map(name => `
-                    <div class="flex flex-col space-y-2 p-3 bg-white rounded-xl border border-[#ECE6FB] shadow-sm">
-                        <label class="checklist-item flex items-center space-x-3">
-                            <input type="checkbox" class="emer-check-item custom-checkbox w-6 h-6 rounded-md accent-[#7C5CFF]" value="${esc(name)}" checked onchange="this.parentElement.nextElementSibling.classList.toggle('hidden', this.checked)">
-                            <div class="flex-1 font-bold text-[#2A2550]">
-                                <span>${esc(name)}</span>
-                                <span class="text-xs font-medium ml-1 text-[#8A85A8]">(ในระบบมี ${totals[name]} ชิ้น)</span>
-                            </div>
-                        </label>
-                        <div class="hidden pl-9 pr-2 pb-1">
-                            <input type="number" min="1" class="w-full input-pastel p-2.5 text-sm font-bold text-red-500 placeholder-red-300" placeholder="ระบุจำนวนที่ขาดหายไป...">
-                        </div>
-                    </div>`).join('');
-            }
-            $('emergencyCheckModal').classList.remove('hidden');
+          const sel = document.getElementById('emergencyCheckOperator');
+          let last = ''; try { last = localStorage.getItem('emer_by') || ''; } catch (e) {}
+          sel.innerHTML = '<option value="">-- เลือกผู้ตรวจสอบ --</option>' + (appData.operators || []).map(o => '<option>' + emerEsc(o) + '</option>').join('');
+          if (last && (appData.operators || []).indexOf(last) >= 0) sel.value = last;
+
+          const sum = {}, order = [];
+          (appData.inventory || []).forEach(it => {
+            if (!isEmer(it.room)) return;
+            if (!(it.name in sum)) { sum[it.name] = 0; order.push(it.name); }
+            sum[it.name] += Number(it.qty) || 0;
+          });
+          window._emerItems = order.map(n => ({ name: n, qty: sum[n] }));
+
+          const today = emerToday();
+          const field = 'width:100%;padding:9px 10px;border:1px solid #e3dcf5;border-radius:12px;background:#fff;font:inherit';
+          let h = '<div style="display:flex;gap:8px;margin-bottom:10px">' +
+            '<input type="date" id="emerDate" value="' + today + '" max="' + today + '" style="' + field + '">' +
+            '<select id="emerShift" style="' + field + '"><option value="ด">เวรดึก (ด)</option><option value="ช">เวรเช้า (ช)</option><option value="บ">เวรบ่าย (บ)</option></select></div>';
+          if (!order.length) h += '<p style="color:#999;text-align:center;padding:16px">ยังไม่มีของในคลังรถ Emergency</p>';
+          order.forEach((n, i) => {
+            h += '<div class="emer-row" style="padding:8px 0;border-bottom:1px solid #f3eefb">' +
+              '<label style="display:flex;align-items:center;gap:10px;cursor:pointer">' +
+              '<input type="checkbox" class="emer-check-item" data-i="' + i + '" checked style="width:20px;height:20px;flex:none" ' +
+              'onchange="this.closest(\'.emer-row\').querySelector(\'.emer-miss\').classList.toggle(\'hidden\', this.checked)">' +
+              '<span style="flex:1">' + emerEsc(n) + ' <small style="color:#9a8fb5">(ในระบบมี ' + sum[n] + ')</small></span></label>' +
+              '<input type="number" min="1" inputmode="numeric" class="emer-miss hidden" placeholder="ขาดกี่ชิ้น (เว้นว่างได้)" style="' + field + ';margin-top:6px;border-color:#f5c2cf"></div>';
+          });
+          h += '<textarea id="emerNote" rows="2" maxlength="500" placeholder="หมายเหตุ เช่น ของใกล้หมดอายุ / ส่งเปลี่ยนแล้ว" style="' + field + ';margin-top:10px"></textarea>';
+          document.getElementById('emergencyChecklist').innerHTML = h;
+          document.getElementById('emerShift').value = emerShiftNow();
+          document.getElementById('emergencyCheckModal').classList.remove('hidden');
         }
-        function closeEmergencyModal() { $('emergencyCheckModal').classList.add('hidden'); }
 
         function confirmEmergencyCheck() {
-            const operator = $('emergencyCheckOperator').value;
-            if (!operator) { alert("กรุณาเลือกชื่อผู้ตรวจสอบ"); return; }
-            const checkboxes = document.querySelectorAll('.emer-check-item');
-            if (checkboxes.length === 0) { alert("ไม่มีรายการให้ตรวจเช็ค"); return; }
-            let checkedCount = 0;
-            const missingDetails = [];
-            checkboxes.forEach(cb => {
-                if (cb.checked) checkedCount++;
-                else {
-                    const mQty = cb.parentElement.nextElementSibling.querySelector('input').value || "ไม่ระบุจำนวน";
-                    missingDetails.push(`- ${cb.value} (ขาด ${mQty} ชิ้น)`);
-                }
-            });
-            const resultText = `ครบ: ${checkedCount > 0 ? checkedCount + ' รายการ' : 'ไม่มี'}\nขาด:\n${missingDetails.length > 0 ? missingDetails.join('\n') : 'ไม่มี'}`;
-            const btn = $('confirmEmergencyBtn');
-            btn.innerText = "กำลังบันทึก...";
-            btn.disabled = true;
-            google.script.run
-                .withFailureHandler(err => { btn.innerText = "บันทึก 📝"; btn.disabled = false; alert('เกิดข้อผิดพลาด: ' + (err && err.message ? err.message : err)); })
-                .withSuccessHandler(res => {
-                    btn.innerText = "บันทึก 📝";
-                    btn.disabled = false;
-                    if (res && res.success === false) { alert(res.message); return; }
-                    closeEmergencyModal();
-                    toast(res.message || 'บันทึกแล้ว ✓');
-                })
-                .saveEmergencyCheck(operator, resultText);
+          const op = document.getElementById('emergencyCheckOperator').value;
+          if (!op) { toast('กรุณาเลือกผู้ตรวจสอบ'); return; }
+          const list = window._emerItems || [];
+          if (!list.length) { toast('ไม่มีรายการให้เช็ก'); return; }
+          const date = document.getElementById('emerDate').value;
+          const shift = document.getElementById('emerShift').value;
+          if (!date) { toast('กรุณาเลือกวันที่'); return; }
+          const items = Array.prototype.map.call(document.querySelectorAll('#emergencyChecklist .emer-check-item'), cb => {
+            const it = list[Number(cb.dataset.i)];
+            const miss = cb.closest('.emer-row').querySelector('.emer-miss').value;
+            return { name: it.name, qty: it.qty, ok: cb.checked, missing: cb.checked ? '' : (miss || '') };
+          });
+          const note = document.getElementById('emerNote').value.trim();
+          const btn = document.getElementById('confirmEmergencyBtn');
+          const old = btn.textContent;
+          btn.disabled = true; btn.textContent = 'กำลังบันทึก…';
+          try { localStorage.setItem('emer_by', op); } catch (e) {}
+          google.script.run
+            .withSuccessHandler(res => { btn.disabled = false; btn.textContent = old; closeEmergencyModal(); toast((res && res.message) || 'บันทึกแล้ว'); })
+            .withFailureHandler(e => { btn.disabled = false; btn.textContent = old; toast('บันทึกไม่สำเร็จ: ' + ((e && e.message) || e)); })
+            .saveEmergencyShiftCheck({ date: date, shift: shift, operator: op, items: items, note: note });
         }
 
+        function closeEmergencyModal() { $('emergencyCheckModal').classList.add('hidden'); }
+
+        // ปุ่ม "📊 แบบฟอร์มรายเดือน": เปิด Google Sheet แท็บของเดือนที่เลือก
         function printEmergencyReport() {
-            const year = prompt("กรุณาระบุปี ค.ศ. ที่ต้องการพิมพ์รายงาน (เช่น " + new Date().getFullYear() + ")", new Date().getFullYear());
-            if (!year) return;
-            // เปิดหน้าต่างไว้ก่อน (ถ้าเปิดหลังโหลดเสร็จ มือถือบางรุ่นจะบล็อกป๊อปอัป)
-            const printWindow = window.open('', '_blank');
-            $('statusText').innerText = "กำลังเตรียมรายงาน...";
-            google.script.run.withSuccessHandler(res => {
-                $('statusText').innerText = "✅ พร้อมใช้งาน";
-                if (!res.success) { if (printWindow) printWindow.close(); alert("Error: " + res.error); return; }
-                if (res.logs.length === 0) { if (printWindow) printWindow.close(); alert("ไม่มีข้อมูลการตรวจเช็คในปี " + year); return; }
-                const rows = res.logs.map(log => `
-                        <tr>
-                            <td>${esc(log.date)}</td>
-                            <td>${esc(log.operator)}</td>
-                            <td class="${log.status.includes('ครบ') ? 'status-pass' : 'status-fail'}">${esc(log.status)}</td>
-                            <td>${esc(log.details).replace(/\n/g, '<br>')}</td>
-                        </tr>`).join('');
-                const html = `<!DOCTYPE html>
-                <html lang="th"><head><meta charset="UTF-8">
-                    <title>รายงานการตรวจเช็คสต๊อกรถ Emergency ปี ${esc(year)}</title>
-                    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap" rel="stylesheet">
-                    <style>
-                        body { font-family: 'Sarabun', sans-serif; padding: 30px; color: #333; }
-                        h2 { text-align: center; color: #6D4DF2; margin-bottom: 20px; }
-                        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-                        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; font-size: 14px; vertical-align: top; }
-                        th { background-color: #F3EFFF; color: #2A2550; }
-                        .status-pass { color: #16a34a; font-weight: bold; }
-                        .status-fail { color: #ef4444; font-weight: bold; }
-                        .print-btn { display: block; width: 100px; margin: 0 auto 20px auto; padding: 10px; background: #7C5CFF; color: #fff; text-align: center; border-radius: 99px; cursor: pointer; border: none; font-family: inherit; font-size: 16px; }
-                        @media print { .print-btn { display: none; } body { padding: 0; } }
-                    </style>
-                </head><body>
-                    <button class="print-btn" onclick="window.print()">🖨️ พิมพ์</button>
-                    <h2>รายงานการตรวจเช็ครถ Emergency ประจำปี ${esc(year)}</h2>
-                    <table><thead><tr><th width="15%">วันที่ตรวจ</th><th width="15%">ผู้ตรวจสอบ</th><th width="15%">สถานะ</th><th width="55%">รายละเอียด (เช็คลิสต์)</th></tr></thead>
-                    <tbody>${rows}</tbody></table>
-                </body></html>`;
-                const w = printWindow || window.open('', '_blank');
-                if (!w) { alert('เบราว์เซอร์บล็อกหน้าต่างใหม่ กรุณาอนุญาตป๊อปอัปแล้วลองอีกครั้ง'); return; }
-                w.document.write(html);
-                w.document.close();
-            }).getEmergencyLogs(String(year));
+          const now = new Date();
+          const def = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+          const ym = prompt('แบบฟอร์มเดือนไหน? (ปี ค.ศ.-เดือน เช่น ' + def + ')', def);
+          if (!ym) return;
+          if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(ym.trim())) { toast('รูปแบบเดือนไม่ถูกต้อง เช่น ' + def); return; }
+          const w = window.open('', '_blank');
+          if (w) w.document.write('<p style="font-family:sans-serif;padding:24px">กำลังสร้างแบบฟอร์ม…</p>');
+          google.script.run
+            .withSuccessHandler(r => { if (w) w.location.href = r.url; else location.href = r.url; })
+            .withFailureHandler(e => { if (w) w.close(); toast('สร้างแบบฟอร์มไม่สำเร็จ: ' + ((e && e.message) || e)); })
+            .exportEmergencyMonth(ym.trim());
         }
     </script>
 </body>
