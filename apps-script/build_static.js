@@ -4,11 +4,13 @@ const SRC = __dirname, OUT = require('path').join(__dirname, '..', 'web');
 const EXEC = 'https://script.google.com/macros/s/AKfycbxAFHfMwW_2rIuu4WTVpXhDxJfyp8MUlMkOG56onP9SHURg9g0G4Y4zuTdbKcmpNLdOpA/exec';
 const PAGES = {
   leave: { file: 'LeavePage', out: 'index.html', icons: 'xray', app: 'X-ray General', color: '#FDE9BE', title: 'ระบบใบลา โรงพยาบาลระยอง', viewport: 'width=device-width, initial-scale=1' },
-  xray:  { file: 'XrayPage', out: 'xray.html', icons: 'xray', app: 'X-ray General', color: '#FDE9BE', title: 'ระบบจัดการคลังสินค้า X-ray', viewport: 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no' }
+  xray:  { file: 'XrayPage', out: 'xray.html', icons: 'xray', app: 'X-ray General', color: '#FDE9BE', title: 'ระบบจัดการคลังสินค้า X-ray', viewport: 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no' },
+  qa:    { file: 'QAPage', out: 'qa.html', icons: 'xray', app: 'X-ray General', color: '#FDE9BE', title: 'Daily QA ห้อง X-ray', viewport: 'width=device-width, initial-scale=1' }
 };
 const MENU = [
   { key: 'leave', icon: '📅', title: 'ระบบใบลา', sub: 'ปฏิทินการลา · พิมพ์ใบลา PDF', tone: 'violet' },
-  { key: 'xray',  icon: '📦', title: 'คลังสินค้า X-ray', sub: 'รับเข้า · เบิกใช้ · ของรออบ', tone: 'peach' }
+  { key: 'xray',  icon: '📦', title: 'คลังสินค้า X-ray', sub: 'รับเข้า · เบิกใช้ · ของรออบ', tone: 'peach' },
+  { key: 'qa',    icon: '✅', title: 'Daily QA ห้อง X-ray', sub: 'เช็กเครื่องรายวัน · ดูย้อนหลัง', tone: 'mint' }
 ].map(m => Object.assign({}, m, { href: './' + PAGES[m.key].out.replace('index.html', '') }));
 
 const esc = v => String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');

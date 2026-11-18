@@ -3,14 +3,16 @@
 
 const PAGES = {
   leave: { file: 'LeavePage', title: 'ระบบใบลา โรงพยาบาลระยอง', viewport: 'width=device-width, initial-scale=1' },
-  xray:  { file: 'XrayPage', title: 'ระบบจัดการคลังสินค้า X-ray', viewport: 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no' }
+  xray:  { file: 'XrayPage', title: 'ระบบจัดการคลังสินค้า X-ray', viewport: 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no' },
+  qa:    { file: 'QAPage', title: 'Daily QA ห้อง X-ray', viewport: 'width=device-width, initial-scale=1' }
 };
 const DEFAULT_PAGE = 'leave';   // เปิดลิงก์เปล่าๆ จะเข้าหน้านี้
 
 // รายการในเมนูขีด 3 ขีด (เพิ่มเว็บอื่นได้ที่นี่ เช่นใส่ url ของเว็บ Intervention)
 const MENU = [
   { key: 'leave', icon: '📅', title: 'ระบบใบลา', sub: 'ปฏิทินการลา · พิมพ์ใบลา PDF', tone: 'violet' },
-  { key: 'xray',  icon: '📦', title: 'คลังสินค้า X-ray', sub: 'รับเข้า · เบิกใช้ · ของรออบ', tone: 'peach' }
+  { key: 'xray',  icon: '📦', title: 'คลังสินค้า X-ray', sub: 'รับเข้า · เบิกใช้ · ของรออบ', tone: 'peach' },
+  { key: 'qa',    icon: '✅', title: 'Daily QA ห้อง X-ray', sub: 'เช็กเครื่องรายวัน · ดูย้อนหลัง', tone: 'mint' }
   // ,{ url: 'https://script.google.com/macros/s/xxxx/exec', icon: '🩺', title: 'ระบบ Intervention', sub: 'คิวหัตถการ · คลังอุปกรณ์', tone: 'mint' }
 ];
 
@@ -45,7 +47,8 @@ const API_FUNCS = [
   'login', 'getData', 'savePerson', 'deletePerson', 'saveLeave', 'deleteLeave', 'saveConfig',
   'uploadPdfTemplate', 'getPdfTemplateBase64',
   'getAppData', 'processStockTransaction', 'returnFromSterile', 'deleteInventoryItem',
-  'linkBarcode', 'unlinkBarcode', 'getHistory', 'saveEmergencyCheck', 'getEmergencyLogs'
+  'linkBarcode', 'unlinkBarcode', 'getHistory', 'saveEmergencyCheck', 'getEmergencyLogs',
+  'qaInit', 'qaGetDay', 'qaSave', 'qaGetMonth'
 ];
 
 function doPost(e) {
