@@ -1,39 +1,78 @@
 /****************************************************************
- * Daily QA ห้อง X-ray  (เพิ่มเข้าโปรเจกต์ "เว็บงานรังสีวิทยา")
+ * Daily QA ห้อง X-ray  (อยู่ในโปรเจกต์ "เว็บงานรังสีวิทยา")
  * เปิดหน้า:  <ลิงก์ /exec>?page=qa   หรือ GitHub: web/qa.html
  * หน้าเว็บ = QAPage.html (เปิดผ่าน doGet ใน Router.gs, เมนู ☰ ใช้ร่วมกับหน้าอื่น)
  *
- * ชีตที่ใช้ (สร้างให้อัตโนมัติครั้งแรก):
- *   QA_Rooms           : ห้อง | สถานะ (ใช้งาน / ปิด)
- *   QA_Items           : หมวด | รายการ | ใช้เฉพาะห้อง (เว้นว่าง = ทุกห้อง, หลายห้องคั่นด้วย ,)
- *   QA_บันทึก_<ปีงบ>    : แยกแท็บตามปีงบประมาณ (เริ่ม 1 ต.ค.)
+ * ไฟล์ที่ระบบสร้างให้เอง (ในโฟลเดอร์ "ระบบงานรังสีวิทยา" › "Daily QA ห้อง X-ray"):
+ *   📗 Daily QA - ตั้งค่า   : แท็บ QA_Rooms (ห้อง | สถานะ) และ QA_Items (หมวด | รายการ | ใช้เฉพาะห้อง)
+ *   📗 Daily QA - <ชื่อห้อง> : 1 ไฟล์ต่อ 1 ห้อง · 1 แท็บต่อ 1 เดือน (เช่น "พ.ย. 2569")
+ *        หน้าตาเหมือนฟอร์มกระดาษ: แถว = รายการเช็ก, คอลัมน์ = วันที่ 1–31, ช่อง ✓ / ✗
+ *        ข้อที่ ✗ มีโน้ตปัญหาติดที่ช่องนั้น · ท้ายตาราง = ผู้ปฏิบัติงาน / เวลาบันทึก / หมายเหตุ
  ****************************************************************/
 
-// ใส่ ID ไฟล์ Google Sheet ถ้าอยากเก็บในไฟล์ที่มีอยู่แล้ว
-// เว้นว่าง = ระบบสร้างไฟล์ใหม่ชื่อ "Daily QA ห้อง X-ray" ใน Drive ของเจ้าของสคริปต์ให้เอง
-const QA_SHEET_ID = '';
 const QA_TZ = 'Asia/Bangkok';
-const QA_CACHE_KEY = 'qa_cfg_v1';
-const QA_LOG_HEAD = ['บันทึกเมื่อ', 'วันที่', 'ห้อง', 'ผู้ปฏิบัติงาน', 'สรุป', 'รายการไม่ผ่าน', 'หมายเหตุ', 'ผล (ข้อมูลระบบ)'];
+const QA_CACHE_KEY = 'qa_cfg_v2';
+const QA_FOLDER_NAME = 'Daily QA ห้อง X-ray';
+const QA_TH_M = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+const QA_ROW_BY = 'ผู้ปฏิบัติงาน', QA_ROW_TIME = 'เวลาบันทึก', QA_ROW_NOTE = 'หมายเหตุ';
+const QA_FIRST_ITEM_ROW = 3;   // แถว 1 = หัวเรื่อง, แถว 2 = หัวตาราง
+const QA_DAY_COL0 = 2;         // วันที่ 1 อยู่คอลัมน์ C (= 2 + 1)
+const QA_HEAD_BG = '#efe7ff', QA_BAD_BG = '#fde6ea';
 
-/* ---------- ไฟล์ชีต ---------- */
+/* ---------- โฟลเดอร์ / ไฟล์ ---------- */
+function qaProps_() { return PropertiesService.getScriptProperties(); }
+
+function qaFolder_() {
+  const P = qaProps_();
+  const id = P.getProperty('QA_FOLDER_ID');
+  if (id) { try { return DriveApp.getFolderById(id); } catch (e) {} }
+  let parent = null;
+  try { parent = DriveApp.getFolderById(P.getProperty('FOLDER_ID')); } catch (e) {}
+  const f = parent ? parent.createFolder(QA_FOLDER_NAME) : DriveApp.createFolder(QA_FOLDER_NAME);
+  P.setProperty('QA_FOLDER_ID', f.getId());
+  return f;
+}
+
+function qaNewSS_(title) {
+  const ss = SpreadsheetApp.create(title);
+  ss.setSpreadsheetTimeZone(QA_TZ);
+  try { DriveApp.getFileById(ss.getId()).moveTo(qaFolder_()); } catch (e) {}
+  return ss;
+}
+
+function qaDropDefault_(ss) {
+  ss.getSheets().forEach(sh => {
+    if (ss.getSheets().length > 1 && /^(Sheet|ชีต|แผ่นงาน|แผ่น)\s*1$/.test(sh.getName()) && sh.getLastRow() === 0) ss.deleteSheet(sh);
+  });
+}
+
+/** ไฟล์ตั้งค่า (ห้อง + รายการเช็ก) */
 function qaSS_() {
-  if (QA_SHEET_ID) return SpreadsheetApp.openById(QA_SHEET_ID);
-  const props = PropertiesService.getScriptProperties();
-  let id = props.getProperty('QA_SHEET_ID');
+  const P = qaProps_();
+  let id = P.getProperty('QA_SHEET_ID');
   if (id) { try { return SpreadsheetApp.openById(id); } catch (e) {} }
   const lock = LockService.getScriptLock();
-  lock.waitLock(10000);
+  lock.waitLock(20000);
   try {
-    id = props.getProperty('QA_SHEET_ID');
+    id = P.getProperty('QA_SHEET_ID');
     if (id) { try { return SpreadsheetApp.openById(id); } catch (e) {} }
-    const ss = SpreadsheetApp.create('Daily QA ห้อง X-ray');
-    ss.setSpreadsheetTimeZone(QA_TZ);
-    props.setProperty('QA_SHEET_ID', ss.getId());
+    const ss = qaNewSS_('Daily QA - ตั้งค่า (ห้อง/รายการเช็ก)');
+    P.setProperty('QA_SHEET_ID', ss.getId());
     return ss;
   } finally {
     lock.releaseLock();
   }
+}
+
+/** ไฟล์ของห้อง (1 ห้อง = 1 ไฟล์) */
+function qaRoomSS_(room, create) {
+  const P = qaProps_(), key = 'QA_ROOM_' + room;
+  const id = P.getProperty(key);
+  if (id) { try { return SpreadsheetApp.openById(id); } catch (e) {} }
+  if (!create) return null;
+  const ss = qaNewSS_('Daily QA - ' + room);
+  P.setProperty(key, ss.getId());
+  return ss;
 }
 
 function qaEnsure_(ss) {
@@ -43,8 +82,9 @@ function qaEnsure_(ss) {
     sh.getRange(1, 1, rooms.length + 1, 2).setValues(
       [['ห้อง', 'สถานะ (ใช้งาน / ปิด)']].concat(rooms.map(r => [r, 'ใช้งาน'])));
     sh.setFrozenRows(1);
-    sh.getRange(1, 1, 1, 2).setFontWeight('bold').setBackground('#efe7ff');
+    sh.getRange(1, 1, 1, 2).setFontWeight('bold').setBackground(QA_HEAD_BG);
     sh.setColumnWidth(1, 180); sh.setColumnWidth(2, 160);
+    sh.getRange('B2:B100').setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(['ใช้งาน', 'ปิด']).build());
   }
   if (!ss.getSheetByName('QA_Items')) {
     const sh = ss.insertSheet('QA_Items');
@@ -68,11 +108,10 @@ function qaEnsure_(ss) {
     ];
     sh.getRange(1, 1, rows.length, 3).setValues(rows);
     sh.setFrozenRows(1);
-    sh.getRange(1, 1, 1, 3).setFontWeight('bold').setBackground('#efe7ff');
+    sh.getRange(1, 1, 1, 3).setFontWeight('bold').setBackground(QA_HEAD_BG);
     sh.setColumnWidth(1, 130); sh.setColumnWidth(2, 260); sh.setColumnWidth(3, 230);
   }
-  const def = ss.getSheetByName('Sheet1') || ss.getSheetByName('แผ่น1') || ss.getSheetByName('ชีต1');
-  if (def && ss.getSheets().length > 1 && def.getLastRow() === 0) ss.deleteSheet(def);
+  qaDropDefault_(ss);
 }
 
 /* ---------- ตั้งค่า (cache 5 นาที) ---------- */
@@ -83,12 +122,10 @@ function qaConfig_() {
 
   const ss = qaSS_();
   qaEnsure_(ss);
-  const rv = ss.getSheetByName('QA_Rooms').getDataRange().getValues().slice(1);
-  const rooms = rv
+  const rooms = ss.getSheetByName('QA_Rooms').getDataRange().getValues().slice(1)
     .filter(r => String(r[0]).trim() && String(r[1]).trim() !== 'ปิด')
     .map(r => String(r[0]).trim());
-  const iv = ss.getSheetByName('QA_Items').getDataRange().getValues().slice(1);
-  const items = iv
+  const items = ss.getSheetByName('QA_Items').getDataRange().getValues().slice(1)
     .filter(r => String(r[1]).trim())
     .map(r => ({
       g: String(r[0]).trim() || 'อื่น ๆ',
@@ -106,54 +143,106 @@ function qaClearCache() {
 }
 
 function qaKey_(it) { return it.g + ' › ' + it.n; }
-
 function qaItemsFor_(cfg, room) {
   return cfg.items.filter(it => !it.rooms.length || it.rooms.indexOf(room) >= 0);
 }
 
-/* ---------- ชีตบันทึกแยกปีงบ ---------- */
-function qaFiscalYearBE_(d) {
-  return d.getFullYear() + 543 + (d.getMonth() >= 9 ? 1 : 0); // ต.ค. = เดือน 9
-}
-
-function qaLogSheet_(ss, d, create) {
-  const name = 'QA_บันทึก_' + qaFiscalYearBE_(d);
-  let sh = ss.getSheetByName(name);
-  if (!sh && create) {
-    sh = ss.insertSheet(name);
-    sh.getRange(1, 1, 1, QA_LOG_HEAD.length).setValues([QA_LOG_HEAD])
-      .setFontWeight('bold').setBackground('#efe7ff');
-    sh.setFrozenRows(1);
-    sh.getRange('A:A').setNumberFormat('dd/MM/yyyy HH:mm');
-    sh.getRange('B:B').setNumberFormat('dd/MM/yyyy');
-  }
-  return sh;
-}
-
+/* ---------- วันที่ ---------- */
 function qaParseDate_(s) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(String(s))) throw new Error('รูปแบบวันที่ไม่ถูกต้อง');
   const p = s.split('-').map(Number);
   return new Date(p[0], p[1] - 1, p[2]);
 }
+function qaFmt_(d, f) { return Utilities.formatDate(d, QA_TZ, f); }
+function qaMonthName_(d) { return QA_TH_M[d.getMonth()] + ' ' + (d.getFullYear() + 543); }
+function qaDays_(d) { return new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate(); }
 
-function qaFmt_(d, f) {
-  return d instanceof Date ? Utilities.formatDate(d, QA_TZ, f) : String(d || '');
+/* ---------- แท็บรายเดือน (หน้าตาแบบฟอร์มกระดาษ) ---------- */
+function qaMonthSheet_(room, d, create) {
+  const ss = qaRoomSS_(room, create);
+  if (!ss) return null;
+  const name = qaMonthName_(d);
+  let sh = ss.getSheetByName(name);
+  if (sh || !create) return sh;
+
+  const items = qaItemsFor_(qaConfig_(), room);
+  const nDays = qaDays_(d), nCol = QA_DAY_COL0 + nDays;
+  sh = ss.insertSheet(name, 0);   // เดือนล่าสุดอยู่แท็บแรก
+  sh.getRange(1, 1).setValue('Daily Check list ' + room + ' ประจำเดือน ' + QA_TH_M[d.getMonth()] + ' ' + (d.getFullYear() + 543))
+    .setFontWeight('bold').setFontSize(13);
+  const head = ['หมวด', 'รายการ'];
+  for (let i = 1; i <= nDays; i++) head.push(i);
+  const rows = [head].concat(items.map(it => [it.g, it.n].concat(new Array(nDays).fill(''))));
+  [QA_ROW_BY, QA_ROW_TIME, QA_ROW_NOTE].forEach(l => rows.push(['', l].concat(new Array(nDays).fill(''))));
+  sh.getRange(2, 1, rows.length, nCol).setValues(rows);
+
+  const last = rows.length + 1;
+  sh.getRange(2, 1, 1, nCol).setFontWeight('bold').setBackground(QA_HEAD_BG).setHorizontalAlignment('center');
+  sh.getRange(last - 2, 1, 3, 2).setFontWeight('bold').setBackground(QA_HEAD_BG);
+  sh.getRange(2, 1, rows.length, nCol).setBorder(true, true, true, true, true, true, '#d9cff2', SpreadsheetApp.BorderStyle.SOLID);
+  sh.getRange(3, QA_DAY_COL0 + 1, rows.length - 1, nDays).setHorizontalAlignment('center').setVerticalAlignment('middle');
+  sh.getRange(last - 2, QA_DAY_COL0 + 1, 3, nDays).setFontSize(8).setWrap(true);
+  sh.getRange(last - 2, QA_DAY_COL0 + 1, 1, nDays).setTextRotation(90);
+  sh.setColumnWidth(1, 95); sh.setColumnWidth(2, 210);
+  sh.setColumnWidths(QA_DAY_COL0 + 1, nDays, 30);
+  sh.setRowHeight(last - 2, 80);
+  sh.setFrozenRows(2); sh.setFrozenColumns(2);
+  qaDropDefault_(ss);
+  return sh;
 }
 
-function qaRowObj_(r) {
-  let data = { r: {}, n: {} };
-  try { data = JSON.parse(r[7] || '{}'); } catch (e) {}
+/** อ่านแท็บเดือน → { rowOf: {key: row}, byRow, timeRow, noteRow, vals, notes } */
+function qaGrid_(sh) {
+  const last = sh.getLastRow(), lastCol = sh.getLastColumn();
+  const rng = sh.getRange(1, 1, last, lastCol);
+  const vals = rng.getValues(), notes = rng.getNotes();
+  const g = { rowOf: {}, byRow: 0, timeRow: 0, noteRow: 0, vals: vals, notes: notes, nDays: lastCol - QA_DAY_COL0 };
+  for (let r = QA_FIRST_ITEM_ROW - 1; r < vals.length; r++) {
+    const a = String(vals[r][0]).trim(), b = String(vals[r][1]).trim();
+    if (!a && b === QA_ROW_BY) g.byRow = r + 1;
+    else if (!a && b === QA_ROW_TIME) g.timeRow = r + 1;
+    else if (!a && b === QA_ROW_NOTE) g.noteRow = r + 1;
+    else if (b) g.rowOf[a + ' › ' + b] = r + 1;
+  }
+  return g;
+}
+
+/** ข้อมูลของวันที่ day จากตาราง (null = ยังไม่ได้เช็ก) */
+function qaDayRec_(g, room, ym, day, items) {
+  const c = QA_DAY_COL0 + day - 1;   // index ใน array (0-based)
+  const by = g.byRow ? String(g.vals[g.byRow - 1][c] || '').trim() : '';
+  if (!by) return null;
+  const results = {}, notes = {}, failed = [];
+  (items || Object.keys(g.rowOf).map(k => ({ key: k }))).forEach(it => {
+    const k = it.key || qaKey_(it), r = g.rowOf[k];
+    if (!r) return;
+    const v = String(g.vals[r - 1][c]).trim();
+    if (v === '✓') results[k] = 'P';
+    else if (v === '✗') {
+      results[k] = 'F';
+      const t = String(g.notes[r - 1][c] || '').trim();
+      if (t) notes[k] = t;
+      failed.push(k.split(' › ').pop() + (t ? ' (' + t + ')' : ''));
+    }
+  });
+  const time = g.timeRow ? g.vals[g.timeRow - 1][c] : '';
   return {
-    date: qaFmt_(r[1], 'yyyy-MM-dd'),
-    time: qaFmt_(r[0], 'HH:mm'),
-    room: String(r[2]),
-    by: String(r[3]),
-    summary: String(r[4]),
-    failed: String(r[5] || ''),
-    note: String(r[6] || ''),
-    results: data.r || {},
-    notes: data.n || {}
+    date: ym + '-' + ('0' + day).slice(-2),
+    time: time instanceof Date ? qaFmt_(time, 'HH:mm') : String(time || ''),
+    room: room, by: by,
+    summary: failed.length ? 'ไม่ผ่าน ' + failed.length + ' รายการ' : 'ผ่านทั้งหมด',
+    failed: failed.join(', '),
+    note: g.noteRow ? String(g.vals[g.noteRow - 1][c] || '') : '',
+    results: results, notes: notes
   };
+}
+
+/* ---------- สถานะวันนี้ (จำไว้ ไม่ต้องเปิดทุกไฟล์ห้อง) ---------- */
+function qaTodayStore_(today) {
+  try {
+    const o = JSON.parse(qaProps_().getProperty('QA_TODAY') || '{}');
+    return o.date === today ? o.recs || {} : {};
+  } catch (e) { return {}; }
 }
 
 /* ---------- เรียกจากหน้าเว็บ ---------- */
@@ -161,30 +250,16 @@ function qaRowObj_(r) {
 /** โหลดครั้งเดียวตอนเปิดหน้า */
 function qaInit() {
   const cfg = qaConfig_();
-  const now = new Date();
-  const today = qaFmt_(now, 'yyyy-MM-dd');
-  const sh = qaLogSheet_(qaSS_(), qaParseDate_(today), false);
-  const todayRec = {};
-  if (sh && sh.getLastRow() > 1) {
-    const last = sh.getLastRow();
-    const start = Math.max(2, last - 299); // วันนี้อยู่ท้ายชีตเสมอ อ่านแค่ 300 แถวล่าง
-    sh.getRange(start, 1, last - start + 1, QA_LOG_HEAD.length).getValues().forEach(r => {
-      if (qaFmt_(r[1], 'yyyy-MM-dd') === today) todayRec[String(r[2])] = qaRowObj_(r);
-    });
-  }
-  return { rooms: cfg.rooms, items: cfg.items, today: today, todayRec: todayRec };
+  const today = qaFmt_(new Date(), 'yyyy-MM-dd');
+  return { rooms: cfg.rooms, items: cfg.items, today: today, todayRec: qaTodayStore_(today) };
 }
 
-/** ดึงบันทึกของห้อง+วันที่ (ใช้ตอนเลือกวันย้อนหลัง) */
+/** ดึงบันทึกของห้อง+วันที่ */
 function qaGetDay(room, dateStr) {
   const d = qaParseDate_(dateStr);
-  const sh = qaLogSheet_(qaSS_(), d, false);
-  if (!sh || sh.getLastRow() < 2) return null;
-  const v = sh.getRange(2, 1, sh.getLastRow() - 1, QA_LOG_HEAD.length).getValues();
-  for (let i = v.length - 1; i >= 0; i--) {
-    if (String(v[i][2]) === room && qaFmt_(v[i][1], 'yyyy-MM-dd') === dateStr) return qaRowObj_(v[i]);
-  }
-  return null;
+  const sh = qaMonthSheet_(room, d, false);
+  if (!sh) return null;
+  return qaDayRec_(qaGrid_(sh), room, dateStr.slice(0, 7), d.getDate());
 }
 
 /** บันทึก (ห้องเดียวกัน วันเดียวกัน = แก้ทับของเดิม) */
@@ -196,54 +271,78 @@ function qaSave(p) {
   if (p.date > today) throw new Error('บันทึกล่วงหน้าไม่ได้');
   const by = String(p.by || '').trim().slice(0, 60);
   if (!by) throw new Error('กรุณาใส่ชื่อผู้ปฏิบัติงาน');
-
-  const res = {}, notes = {}, failed = [];
-  qaItemsFor_(cfg, p.room).forEach(it => {
-    const k = qaKey_(it);
-    const v = p.results && p.results[k];
+  const items = qaItemsFor_(cfg, p.room);
+  items.forEach(it => {
+    const v = p.results && p.results[qaKey_(it)];
     if (v !== 'P' && v !== 'F') throw new Error('ยังไม่ได้เช็ก: ' + it.n);
-    res[k] = v;
-    if (v === 'F') {
-      const t = String((p.notes || {})[k] || '').trim().slice(0, 200);
-      if (t) notes[k] = t;
-      failed.push(it.n + (t ? ' (' + t + ')' : ''));
-    }
   });
-  const summary = failed.length ? 'ไม่ผ่าน ' + failed.length + ' รายการ' : 'ผ่านทั้งหมด';
-  const row = [new Date(), d, p.room, by, summary, failed.join(', '),
-    String(p.note || '').trim().slice(0, 300), JSON.stringify({ r: res, n: notes })];
 
   const lock = LockService.getScriptLock();
-  lock.waitLock(10000);
+  lock.waitLock(20000);
+  let rec;
   try {
-    const sh = qaLogSheet_(qaSS_(), d, true);
-    const last = sh.getLastRow();
-    let target = 0;
-    if (last > 1) {
-      const v = sh.getRange(2, 2, last - 1, 2).getValues(); // วันที่, ห้อง
-      for (let i = v.length - 1; i >= 0; i--) {
-        if (String(v[i][1]) === p.room && qaFmt_(v[i][0], 'yyyy-MM-dd') === p.date) { target = i + 2; break; }
-      }
+    const sh = qaMonthSheet_(p.room, d, true);
+    let g = qaGrid_(sh);
+    // รายการที่เพิ่มใหม่ภายหลัง → แทรกแถวก่อน "ผู้ปฏิบัติงาน"
+    const missing = items.filter(it => !g.rowOf[qaKey_(it)]);
+    if (missing.length && g.byRow) {
+      sh.insertRowsBefore(g.byRow, missing.length);
+      sh.getRange(g.byRow, 1, missing.length, 2).setValues(missing.map(it => [it.g, it.n]))
+        .setFontWeight('normal').setBackground(null);
+      g = qaGrid_(sh);
     }
-    if (target) sh.getRange(target, 1, 1, row.length).setValues([row]);
-    else sh.getRange(last + 1, 1, 1, row.length).setValues([row]);
+    const col = QA_DAY_COL0 + d.getDate(), R0 = QA_FIRST_ITEM_ROW;   // อ่าน/เขียนเฉพาะคอลัมน์ของวันนั้น ตั้งแต่แถวรายการแรก
+    const cell = sh.getRange(R0, col, sh.getLastRow() - R0 + 1, 1);
+    const v = cell.getValues(), nt = cell.getNotes(), bg = cell.getBackgrounds();
+    items.forEach(it => {
+      const k = qaKey_(it), r = g.rowOf[k] - R0, res = p.results[k];
+      v[r][0] = res === 'P' ? '✓' : '✗';
+      nt[r][0] = res === 'F' ? String((p.notes || {})[k] || '').trim().slice(0, 200) : '';
+      bg[r][0] = res === 'F' ? QA_BAD_BG : '#ffffff';
+    });
+    if (g.byRow) v[g.byRow - R0][0] = by;
+    if (g.timeRow) v[g.timeRow - R0][0] = qaFmt_(new Date(), 'HH:mm');
+    if (g.noteRow) v[g.noteRow - R0][0] = String(p.note || '').trim().slice(0, 300);
+    cell.setNumberFormat('@').setValues(v).setNotes(nt).setBackgrounds(bg);
+    SpreadsheetApp.flush();
+    rec = qaDayRec_(qaGrid_(sh), p.room, p.date.slice(0, 7), d.getDate(), items);
+
+    if (p.date === today) {
+      const recs = qaTodayStore_(today);
+      recs[p.room] = { date: rec.date, time: rec.time, room: rec.room, by: rec.by, summary: rec.summary,
+        failed: rec.failed, note: rec.note, results: rec.results, notes: rec.notes };
+      qaProps_().setProperty('QA_TODAY', JSON.stringify({ date: today, recs: recs }));
+    }
   } finally {
     lock.releaseLock();
   }
-  return qaRowObj_(row);
+  return rec;
 }
 
 /** ตารางรายเดือนของห้อง  ym = 'yyyy-MM' */
 function qaGetMonth(room, ym) {
   if (!/^\d{4}-\d{2}$/.test(String(ym))) throw new Error('รูปแบบเดือนไม่ถูกต้อง');
   const d1 = qaParseDate_(ym + '-01');
-  const sh = qaLogSheet_(qaSS_(), d1, false);
+  const sh = qaMonthSheet_(room, d1, false);
   const days = {};
-  if (sh && sh.getLastRow() > 1) {
-    sh.getRange(2, 1, sh.getLastRow() - 1, QA_LOG_HEAD.length).getValues().forEach(r => {
-      const ds = qaFmt_(r[1], 'yyyy-MM-dd');
-      if (String(r[2]) === room && ds.indexOf(ym) === 0) days[Number(ds.slice(8))] = qaRowObj_(r);
-    });
+  if (sh) {
+    const g = qaGrid_(sh);
+    for (let day = 1; day <= qaDays_(d1); day++) {
+      const rec = qaDayRec_(g, room, ym, day);
+      if (rec) days[day] = rec;
+    }
   }
   return { room: room, ym: ym, days: days };
+}
+
+/** (ไม่บังคับ) รันเองจาก editor: สร้างไฟล์ทุกห้อง + แท็บเดือนนี้ไว้ล่วงหน้า แล้วดูลิงก์ใน Log */
+function qaSetupFiles() {
+  qaClearCache();
+  const cfg = qaConfig_(), d = new Date();
+  Logger.log('📁 ' + qaFolder_().getUrl());
+  Logger.log('⚙️ ตั้งค่า: ' + qaSS_().getUrl());
+  cfg.rooms.forEach(room => {
+    qaMonthSheet_(room, d, true);
+    Logger.log('📗 ' + room + ': ' + qaRoomSS_(room, false).getUrl());
+  });
 }
