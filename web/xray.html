@@ -1,0 +1,1465 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ระบบจัดการคลังสินค้า X-ray</title>
+<link rel="icon" type="image/png" href="../xray/favicon.png">
+<script>
+// ใช้แทน google.script.run: เรียก Apps Script ผ่าน fetch แบบไม่ส่งคุกกี้ (เลี่ยงปัญหาล็อกอินหลายบัญชี)
+(function(){
+  var API = "https://script.google.com/macros/s/AKfycbxAFHfMwW_2rIuu4WTVpXhDxJfyp8MUlMkOG56onP9SHURg9g0G4Y4zuTdbKcmpNLdOpA/exec";
+  function mk(ok, no){
+    return new Proxy({}, { get: function(_, k){
+      if (k === 'withSuccessHandler') return function(h){ return mk(h, no); };
+      if (k === 'withFailureHandler') return function(h){ return mk(ok, h); };
+      if (k === 'withUserObject') return function(){ return mk(ok, no); };
+      return function(){
+        var args = Array.prototype.slice.call(arguments);
+        var fail = function(e){ if (no) no(e); else console.error(e); };
+        fetch(API, { method: 'POST', body: JSON.stringify({ fn: k, args: args }), credentials: 'omit', redirect: 'follow' })
+          .then(function(r){ return r.json(); })
+          .then(function(j){ if (j.ok) { if (ok) ok(j.result); } else fail(new Error(j.error)); })
+          .catch(function(){ fail(new Error('เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ ลองใหม่อีกครั้ง')); });
+      };
+    }});
+  }
+  window.google = { script: { run: mk() } };
+})();
+</script>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>X-ray Inventory</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700&family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* ===== ธีมพาสเทล ม่วง-ชมพู-พีช ===== */
+        :root { --zz-pr:#7C5CFF; --zz-tx:#2A2550; --zz-mu:#8A85A8; --zz-bd:#ECE6FB;
+                --zz-g:linear-gradient(100deg,#7C5CFF 0%,#B57BFF 52%,#FF9EB0 100%);
+                --zz-sh:0 14px 32px -14px rgba(124,92,255,.28); }
+        body, html { min-height: 100%; font-family: 'Prompt', 'Sarabun', sans-serif; background-color: #F7F6FB; color: #2A2550; }
+        /* แสงม่วง-ชมพูจางๆ แค่มุมบน ที่เหลือพื้นเรียบ */
+        body::before { content:''; position:fixed; inset:0 0 auto 0; height:320px; z-index:-1; pointer-events:none;
+            background: radial-gradient(60% 100% at 0% 0%, #EEE8FF 0%, transparent 70%), radial-gradient(50% 90% at 100% 0%, #FFEDF2 0%, transparent 70%); }
+        .emo { -webkit-text-fill-color: initial; }
+        .zz-grad-text { background: var(--zz-g); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+        .zz-on { background: var(--zz-g); }
+        .custom-card { background: #fff; border-radius: 1.75rem; box-shadow: 0 1px 2px rgba(42,37,80,.04), 0 12px 32px -22px rgba(80,60,160,.3); }
+        .btn-primary { background: var(--zz-g); color: white; box-shadow: 0 10px 22px -8px rgba(124, 92, 255, 0.55); border-radius: 999px !important; }
+        .btn-primary:active { transform: scale(0.97); }
+        .btn-primary:disabled { opacity: .7; }
+        .input-pastel { background-color: #F5F4FA; border: 1.5px solid transparent; border-radius: 1rem; outline: none; transition: border-color 0.2s, background-color 0.2s; }
+        .input-pastel:focus { border-color: #B9A6FF; background-color: #FFFFFF; box-shadow: 0 0 0 4px rgba(124, 92, 255, 0.12); }
+        .lbl { display:block; font-size:12.5px; font-weight:500; color:#9A96B5; margin:0 0 6px 6px; }
+        .ghost { background:#F5F4FA; color:#6D4DF2; }
+        .fold { display:flex; align-items:center; justify-content:space-between; gap:8px; width:100%; padding:12px 14px; border-radius:1rem; background:#F5F4FA; font-size:13.5px; color:#2A2550; text-align:left; }
+        .fold small { color:#9A96B5; font-size:12px; }
+        .flash { animation: fl 1.6s ease-out; }
+        @keyframes fl { 0%,40% { box-shadow: 0 0 0 3px #B9A6FF; } 100% { box-shadow: 0 0 0 0 transparent; } }
+        .bc-chip { display:inline-flex; align-items:center; gap:6px; padding:6px 6px 6px 12px; border-radius:99px; background:#F5F4FA; font-size:12.5px; font-weight:600; margin:0 6px 6px 0; font-family:ui-monospace,monospace; }
+        .bc-chip button { width:24px; height:24px; border-radius:50%; background:#fff; color:#D92D55; font-size:13px; }
+
+        /* ไม่ใช้ backdrop-filter เพราะกิน GPU บนมือถือ */
+        .bottom-nav { background: #FFFFFF; box-shadow: 0 -1px 0 #F1EFF7, 0 -12px 30px -18px rgba(80,60,160,.25); border-top-left-radius: 1.75rem; border-top-right-radius: 1.75rem; }
+        .nav-item { color: #B9B3D6; transition: color 0.2s; }
+        .nav-item > span:first-child { display:inline-flex; align-items:center; justify-content:center; width:56px; height:38px; border-radius:16px; transition: background-color .2s; }
+        .nav-item.active { color: #7C5CFF; font-weight: bold; }
+        .nav-item.active > span:first-child { background: #EFEAFF; }
+
+        /* ชิปตัวกรอง */
+        .chips { display:flex; gap:8px; overflow-x:auto; scrollbar-width:none; margin:0 -4px; padding:2px 4px 4px; }
+        .chips::-webkit-scrollbar { display:none; }
+        .chip { flex:none; border:0; background:#F5F4FA; color:#8A85A8; padding:8px 14px; border-radius:99px; font-size:12.5px; font-weight:500; white-space:nowrap; cursor:pointer; }
+        .chip.on { background:#7C5CFF; color:#fff; }
+        .chip .n { display:inline-block; min-width:18px; margin-left:4px; padding:0 5px; border-radius:99px; background:#F3EFFF; color:#7C5CFF; font-size:11px; text-align:center; }
+        .chip.on .n { background:rgba(255,255,255,.3); color:#fff; }
+
+        /* รายการในคลัง */
+        .inv-row { background:#fff; border-radius:20px; overflow:hidden; border-bottom:1px solid #F1EFF7; border-radius:0; }
+        .inv-row:last-child { border-bottom:0; }
+        .inv-row.open { background:#FBFAFE; border-radius:18px; }
+        .inv-head { width:100%; display:flex; align-items:center; gap:12px; padding:12px 6px; text-align:left; }
+        .tile { width:40px; height:40px; flex:none; border-radius:13px; display:flex; align-items:center; justify-content:center; font-size:19px; }
+        .t-red { background:#FFE1E6; } .t-orange { background:#FFE7D4; } .t-yellow { background:#FFF3CC; } .t-green { background:#DDF5EA; }
+        .badge { display:inline-block; font-size:10.5px; font-weight:700; padding:1px 8px; border-radius:99px; margin-right:4px; }
+        .b-low { background:#FFF3CC; color:#946200; } .b-soon { background:#FFE7D4; color:#C2571B; } .b-exp, .b-out { background:#FFE1E6; color:#D92D55; }
+        .n-sec { display:flex; align-items:center; gap:6px; font-size:12px; font-weight:600; color:#8A85A8; margin:12px 4px 4px; }
+        .n-sec:first-child { margin-top:2px; }
+        .n-sec span { margin-left:auto; min-width:20px; text-align:center; border-radius:99px; padding:0 6px; background:#F5F4FA; }
+        .qty-pill { min-width:40px; text-align:center; padding:5px 10px; border-radius:12px; font-weight:600; font-size:15px; color:#6D4DF2; background:#F1EDFF; }
+        .qty-pill.low { color:#C2571B; background:#FFEDE2; }
+        .chev { color:#B9B3D6; transition:transform .2s; font-size:12px; }
+        .inv-row.open .chev { transform:rotate(180deg); }
+        .inv-body { display:none; padding:0 8px 12px; }
+        .inv-row.open .inv-body { display:block; }
+        .lot { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:9px 12px; border-radius:14px; background:#fff; margin-top:6px; }
+        .act { flex:1; padding:10px; border-radius:16px; font-weight:700; font-size:13px; }
+
+        /* ประวัติ */
+        .h-day { font-size:12px; font-weight:700; color:#8A85A8; margin:14px 4px 6px; }
+        .h-row { display:flex; gap:10px; align-items:center; padding:10px 4px; border-bottom:1px solid #F1EFF7; }
+        .h-in { background:#DFF6EC; } .h-out { background:#EFEAFF; } .h-ret { background:#FFE9DA; } .h-del { background:#FFE4EA; }
+
+        .checklist-item { cursor: pointer; }
+        .checklist-item:active { transform: scale(0.98); }
+        .custom-checkbox:checked + div { color: #7C5CFF; opacity: 0.85; }
+
+        .animate-pop { animation: pop 0.25s ease-out; }
+        @keyframes pop { 0% { transform: scale(0.9); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+        .dd-opt:active { background-color: #F3EFFF; }
+        #toast { position:fixed; left:50%; bottom:110px; transform:translateX(-50%); z-index:200; background:#2A2550; color:#fff; padding:10px 18px; border-radius:99px; font-size:13.5px; max-width:90%; text-align:center; opacity:0; pointer-events:none; transition:opacity .2s; box-shadow:0 10px 24px -10px rgba(42,37,80,.6); }
+        #toast.show { opacity:1; }
+        .spin { width:18px; height:18px; border-radius:50%; border:3px solid #EFEAFF; border-top-color:#7C5CFF; animation:sp .8s linear infinite; display:inline-block; vertical-align:middle; }
+        @keyframes sp { to { transform:rotate(360deg); } }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen">
+<!-- ===== เมนูขีด 3 ขีด ใช้ร่วมกันทุกหน้า (สไตล์แบบเว็บ Intervention) =====
+     ใส่ในหน้าเว็บด้วยคำสั่ง include('Nav', ...) ในแท็กสคริปต์เล็ต (ดูบรรทัดแรกหลัง <body> ของ Leave.html)
+     เปิด/ปิดด้วย hxOpen() / hxClose()  คลาสทั้งหมดขึ้นต้นด้วย hx- จะได้ไม่ชนกับสไตล์ของแต่ละหน้า -->
+<style>
+.hx-ov{position:fixed;inset:0;background:rgba(15,23,42,.4);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);z-index:900;opacity:0;pointer-events:none;transition:opacity .25s}
+.hx-ov.hx-on{opacity:1;pointer-events:auto}
+.hx-dr{position:fixed;top:0;left:0;bottom:0;width:288px;max-width:86%;background:#fff;z-index:901;box-shadow:0 25px 50px -12px rgba(76,52,170,.35);
+  border-right:1px solid #F0ECFC;border-radius:0 28px 28px 0;padding:20px 18px calc(18px + env(safe-area-inset-bottom,0px));padding-top:calc(20px + env(safe-area-inset-top,0px));
+  display:flex;flex-direction:column;justify-content:space-between;transform:translateX(-105%);transition:transform .3s ease-in-out;will-change:transform;
+  font-family:'Prompt','Sarabun',system-ui,sans-serif;color:#334155;box-sizing:border-box;overflow-y:auto}
+.hx-dr.hx-on{transform:none}
+.hx-dr *{box-sizing:border-box}
+.hx-hd{display:flex;align-items:center;justify-content:space-between;padding-bottom:14px;border-bottom:1px solid #f1f5f9;margin-bottom:18px}
+.hx-brand{display:flex;align-items:center;gap:10px}
+.hx-logo{width:40px;height:40px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:20px;background:linear-gradient(135deg,#EDE8FF,#FFE4EC);box-shadow:inset 0 1px 0 #fff,0 4px 10px rgba(147,129,255,.18)}
+.hx-brand b{display:block;font-size:14px;color:#2A2550;line-height:1.2}
+.hx-brand small{display:block;font-size:11px;color:#94a3b8}
+.hx-x{border:0;background:transparent;color:#94a3b8;font-size:26px;line-height:1;cursor:pointer;padding:4px 6px;border-radius:10px}
+.hx-x:hover{color:#475569;background:#f8fafc}
+.hx-cap{font-size:11px;font-weight:700;color:#a5a0c8;letter-spacing:.04em;margin:0 4px 8px}
+.hx-list{display:flex;flex-direction:column;gap:8px}
+.hx-it{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:18px;text-decoration:none;color:#475569;transition:background .15s,transform .1s;-webkit-tap-highlight-color:transparent}
+.hx-it:hover{background:#f8f7ff}
+.hx-it:active{transform:scale(.98)}
+.hx-ic{width:40px;height:40px;flex:none;border-radius:13px;display:flex;align-items:center;justify-content:center;font-size:19px;box-shadow:inset 0 1px 0 rgba(255,255,255,.8)}
+.hx-violet .hx-ic{background:#EDE8FF}.hx-peach .hx-ic{background:#FFE9DA}.hx-mint .hx-ic{background:#DDF7EE}.hx-sky .hx-ic{background:#DCEBFF}
+.hx-tx{min-width:0;flex:1}
+.hx-tx b{display:block;font-size:14px;font-weight:700;color:#1e293b}
+.hx-tx small{display:block;font-size:11px;color:#94a3b8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hx-it.hx-act{background:linear-gradient(100deg,#7C5CFF 0%,#B57BFF 52%,#FF9EB0 100%);box-shadow:0 8px 18px -6px rgba(139,108,255,.55)}
+.hx-it.hx-act .hx-ic{background:rgba(255,255,255,.28);box-shadow:none}
+.hx-it.hx-act .hx-tx b,.hx-it.hx-act .hx-tx small{color:#fff}
+.hx-dot{width:8px;height:8px;border-radius:50%;background:#fff;flex:none;box-shadow:0 0 0 3px rgba(255,255,255,.35)}
+.hx-ft{font-size:11px;color:#94a3b8;text-align:center;margin-top:20px}
+.hx-load{display:none;position:fixed;inset:0;z-index:950;align-items:center;justify-content:center;background:rgba(255,255,255,.55)}
+.hx-load.hx-on{display:flex}
+.hx-spin{width:38px;height:38px;border-radius:50%;border:4px solid #EDE8FF;border-top-color:#7C5CFF;animation:hxs .8s linear infinite}
+@keyframes hxs{to{transform:rotate(360deg)}}
+</style>
+
+<div class="hx-ov" id="hxOv" onclick="hxClose()"></div>
+<aside class="hx-dr" id="hxDr" aria-hidden="true">
+  <div>
+    <div class="hx-hd">
+      <div class="hx-brand">
+        <span class="hx-logo">🏥</span>
+        <span><b>งานรังสีวิทยา</b><small>โรงพยาบาลระยอง</small></span>
+      </div>
+      <button type="button" class="hx-x" onclick="hxClose()" aria-label="ปิดเมนู">&times;</button>
+    </div>
+    <div class="hx-cap">เลือกระบบ</div>
+    <div class="hx-list">
+      
+      <a class="hx-it hx-violet" href="./" target="_top" data-act="0">
+        <span class="hx-ic">📅</span>
+        <span class="hx-tx"><b>ระบบใบลา</b><small>ปฏิทินการลา · พิมพ์ใบลา PDF</small></span>
+        
+      </a>
+      
+      <a class="hx-it hx-peach hx-act" href="./xray.html" target="_top" data-act="1">
+        <span class="hx-ic">📦</span>
+        <span class="hx-tx"><b>คลังสินค้า X-ray</b><small>รับเข้า · เบิกใช้ · ของรออบ</small></span>
+        <span class="hx-dot"></span>
+      </a>
+      
+    </div>
+  </div>
+  <div class="hx-ft">รพ.ระยอง · กลุ่มงานรังสีวิทยา</div>
+</aside>
+<div class="hx-load" id="hxLoad"><div class="hx-spin"></div></div>
+
+<script>
+(function () {
+  var dr = document.getElementById('hxDr'), ov = document.getElementById('hxOv');
+  window.hxOpen = function () { dr.classList.add('hx-on'); ov.classList.add('hx-on'); dr.setAttribute('aria-hidden', 'false'); };
+  window.hxClose = function () { dr.classList.remove('hx-on'); ov.classList.remove('hx-on'); dr.setAttribute('aria-hidden', 'true'); };
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') hxClose(); });
+  // กดระบบที่เปิดอยู่แล้ว = แค่ปิดเมนู / กดระบบอื่น = แสดงวงหมุนระหว่างเปลี่ยนหน้า
+  dr.addEventListener('click', function (e) {
+    var a = e.target.closest('.hx-it');
+    if (!a) return;
+    if (a.dataset.act === '1') { e.preventDefault(); hxClose(); return; }
+    document.getElementById('hxLoad').classList.add('hx-on');
+  });
+  // ปัดซ้ายเพื่อปิดเมนู (มือถือ)
+  var sx = null;
+  dr.addEventListener('touchstart', function (e) { sx = e.touches[0].clientX; }, { passive: true });
+  dr.addEventListener('touchend', function (e) { if (sx !== null && sx - e.changedTouches[0].clientX > 60) hxClose(); sx = null; });
+  // กลับมาหน้าเดิมด้วยปุ่ม Back ของเบราว์เซอร์ ให้ซ่อนวงหมุน
+  window.addEventListener('pageshow', function () { document.getElementById('hxLoad').classList.remove('hx-on'); });
+})();
+</script>
+
+
+    <header class="pt-8 pb-3 px-5 flex justify-between items-center gap-2 shrink-0">
+        <div class="flex items-center gap-3 min-w-0">
+            <!-- ปุ่มเมนูรวม (สลับไประบบใบลา) -->
+            <button onclick="hxOpen()" aria-label="เมนู" class="w-10 h-10 shrink-0 rounded-2xl bg-white shadow-sm text-lg font-bold text-[#6D4DF2] flex items-center justify-center active:scale-95 transition">☰</button>
+            <div class="min-w-0">
+                <h1 class="text-xl font-bold zz-grad-text truncate"><span class="emo">🐾</span> Daynest X-ray</h1>
+                <p class="text-[11px] text-[#B9B3D6] mt-0.5" id="statusText">กำลังโหลดข้อมูล...</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-2 shrink-0">
+            <button onclick="toggleSterileModal()" aria-label="ของรออบ" class="w-10 h-10 rounded-2xl bg-white shadow-sm relative text-base flex items-center justify-center">
+                🔄 <span id="sterileBadge" class="absolute -top-1 -right-1 bg-[#FF6F91] text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-bold hidden shadow-sm">0</span>
+            </button>
+            <button onclick="toggleNotificationModal()" aria-label="แจ้งเตือน" class="w-10 h-10 rounded-2xl bg-white shadow-sm relative text-base flex items-center justify-center">
+                🔔 <span id="notifBadge" class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-bold hidden shadow-sm">0</span>
+            </button>
+        </div>
+    </header>
+
+    <div class="flex-grow w-full max-w-xl mx-auto px-5 py-2 flex flex-col space-y-5 pb-32">
+
+        <!-- ================= 1. หน้าทำรายการ ================= -->
+        <div id="section-transaction" class="flex flex-col space-y-5">
+            <div class="flex bg-white p-1 rounded-full shadow-sm shrink-0">
+                <button onclick="switchActionMode('IN')" id="modeBtn-IN" class="flex-1 py-3 rounded-full text-[15px] font-semibold zz-on text-white shadow-md transition">📥 นำเข้า</button>
+                <button onclick="switchActionMode('OUT')" id="modeBtn-OUT" class="flex-1 py-3 rounded-full text-[15px] font-semibold text-[#B9B3D6] bg-transparent transition">📤 เบิกใช้</button>
+            </div>
+
+            <div class="custom-card p-5 sm:p-6">
+                <h3 id="formTitle" class="text-base font-semibold text-[#2A2550] mb-4">📝 บันทึกรับเข้าสินค้า</h3>
+                <form id="stockForm" onsubmit="submitStockForm(event)" class="space-y-4" autocomplete="off">
+
+                    <div>
+                        <label class="lbl">คลัง / ห้อง</label>
+                        <select id="roomName" class="w-full input-pastel px-4 py-3.5 text-[15px] text-[#2A2550] warehouse-options" onchange="onRoomChange()"></select>
+                    </div>
+
+                    <div class="relative">
+                        <label class="lbl">ชื่อรายการสินค้า</label>
+                        <div class="relative flex items-center">
+                            <input type="text" id="itemInputText" onfocus="showItemDropdown()" oninput="filterItemDropdown()" onblur="setTimeout(hideItemDropdown, 250)" placeholder="🔍 พิมพ์ค้นหา หรือพิมพ์ชื่อใหม่..." class="w-full input-pastel px-4 py-3.5 pr-16 text-[15px] text-[#2A2550]" autocomplete="off" required>
+                            <button type="button" onclick="$('scanFile').click()" aria-label="ถ่ายรูปบาร์โค้ด" class="absolute right-1.5 bg-white shadow-sm w-10 h-10 rounded-xl text-xl flex items-center justify-center active:scale-95 transition">📷</button>
+                        </div>
+                        <input type="file" id="scanFile" accept="image/*" capture="environment" class="hidden" onchange="onScanFile(this)">
+                        <div id="scanStatus" class="text-[11.5px] text-[#8A85A8] mt-1.5 ml-2">📷 ถ่ายรูปบาร์โค้ด หรือยิงเครื่องสแกนในช่องนี้แล้วกด Enter</div>
+                        <div id="lotInfo" class="hidden mt-2 ml-1 text-xs font-semibold text-[#6D4DF2] bg-[#F3EFFF] rounded-2xl px-3 py-2"></div>
+                        <div id="itemDropdownList" class="absolute z-50 w-full bg-white border-2 border-[#ECE6FB] rounded-[1.25rem] mt-2 shadow-xl max-h-64 overflow-y-auto hidden"></div>
+                        <input type="hidden" id="selectedItemId">
+                        <input type="hidden" id="scanBarcode">
+                    </div>
+
+                    <div>
+                        <label class="lbl">จำนวน</label>
+                        <div class="flex items-center gap-2">
+                            <button type="button" onclick="stepQty(-1)" aria-label="ลด" class="w-12 h-12 shrink-0 rounded-2xl ghost text-2xl active:scale-95">−</button>
+                            <input type="number" id="itemQty" min="1" value="1" required inputmode="numeric" class="flex-1 min-w-0 input-pastel py-2.5 text-xl font-semibold text-center text-[#6D4DF2]">
+                            <button type="button" onclick="stepQty(1)" aria-label="เพิ่ม" class="w-12 h-12 shrink-0 rounded-2xl ghost text-2xl active:scale-95">+</button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="lbl">ผู้ทำรายการ</label>
+                                <select id="operatorSelect" onchange="rememberOp()" class="w-full input-pastel px-3 py-3.5 text-sm operator-options"></select>
+                            </div>
+                            <div>
+                                <label class="lbl">วันที่ทำรายการ</label>
+                                <input type="date" id="transactionDate" required class="w-full input-pastel px-3 py-3.5 text-sm">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="expiryFieldContainer">
+                        <label class="lbl">วันหมดอายุ</label>
+                        <input type="date" id="expiryDate" class="w-full input-pastel px-4 py-3.5 text-[15px]">
+                    </div>
+
+                    <div id="storageUseField" class="hidden">
+                        <label class="lbl">นำไปใช้งานที่ห้อง</label>
+                        <select id="targetRoom" class="w-full input-pastel px-4 py-3.5 text-[15px] text-[#2A2550] roomsused-options"></select>
+                    </div>
+
+                    <div id="sterileSettingField" class="bg-[#F5F4FA] p-4 rounded-2xl space-y-3 hidden">
+                        <label class="flex items-center space-x-3 cursor-pointer">
+                            <input type="checkbox" id="canSterile" class="w-6 h-6 rounded-lg accent-[#7C5CFF]">
+                            <span class="text-sm font-bold text-[#6D4DF2]">นำส่ง Resterile ได้ ♨️</span>
+                        </label>
+                        <input type="text" id="sterileLocation" class="w-full input-pastel bg-white p-3.5 text-sm" placeholder="สถานที่ส่งอบ (เช่น ศูนย์เครื่องมือกลาง)">
+                    </div>
+
+                    <input type="hidden" id="autoCanSterile" value="NO">
+                    <input type="hidden" id="autoSterileLoc" value="">
+
+                    <div class="pt-3">
+                        <button type="submit" id="submitBtn" class="w-full btn-primary font-semibold text-base py-4 transition">บันทึกข้อมูล ✨</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- ================= 2. หน้าคลังสินค้า ================= -->
+        <div id="section-inventory" class="hidden flex flex-col">
+            <div class="custom-card p-5 flex flex-col gap-3">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-base font-semibold text-[#2A2550]">ของในคลัง</h3>
+                    <span id="invCount" class="text-xs font-semibold text-[#8A85A8]"></span>
+                </div>
+                <input type="search" id="invSearch" oninput="debouncedInv()" placeholder="🔍 ค้นหาชื่อสินค้า..." class="w-full input-pastel px-4 py-3 text-sm">
+                <div class="chips" id="roomChips"></div>
+
+                <div id="emergencyCheckBtnContainer" class="hidden flex gap-2">
+                    <button onclick="openEmergencyCheckModal()" class="flex-1 bg-[#DFF6EC] text-[#1F7A5A] border border-[#BDEBD6] font-bold text-sm py-3 rounded-2xl flex items-center justify-center gap-1.5 active:scale-95 transition">📋 เช็คสต๊อก</button>
+                    <button onclick="printEmergencyReport()" class="flex-1 bg-white text-[#6D4DF2] border border-[#ECE6FB] font-bold text-sm py-3 rounded-2xl flex items-center justify-center gap-1.5 active:scale-95 transition">🖨️ พิมพ์รายงาน</button>
+                </div>
+
+                <div id="inventoryList" class="pb-1"></div>
+            </div>
+        </div>
+
+        <!-- ================= 3. หน้าประวัติ ================= -->
+        <div id="section-history" class="hidden flex flex-col">
+            <div class="custom-card p-5 flex flex-col gap-3">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-base font-semibold text-[#2A2550]">ประวัติรับเข้า / เบิกใช้</h3>
+                    <button onclick="loadHistory(true)" class="text-xs font-bold text-[#7C5CFF] bg-[#EFEAFF] px-3 py-2 rounded-full active:scale-95">↻ โหลดใหม่</button>
+                </div>
+                <input type="search" id="histSearch" oninput="debouncedHist()" placeholder="🔍 ค้นหาชื่อสินค้า / ผู้ทำรายการ / คลัง..." class="w-full input-pastel px-4 py-3 text-sm">
+                <div class="chips" id="histChips"></div>
+                <div id="historyList"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- แถบเมนูด้านล่าง -->
+    <nav class="fixed bottom-0 w-full bottom-nav pb-6 pt-3 px-4 flex justify-between items-center z-40">
+        <button onclick="switchMainTab('transaction')" id="nav-transaction" class="nav-item active flex flex-col items-center gap-1 w-1/3">
+            <span class="text-2xl">✍️</span>
+            <span class="text-xs">ทำรายการ</span>
+        </button>
+        <button onclick="switchMainTab('inventory')" id="nav-inventory" class="nav-item flex flex-col items-center gap-1 w-1/3">
+            <span class="text-2xl">🗂️</span>
+            <span class="text-xs">คลังสินค้า</span>
+        </button>
+        <button onclick="switchMainTab('history')" id="nav-history" class="nav-item flex flex-col items-center gap-1 w-1/3">
+            <span class="text-2xl">🕘</span>
+            <span class="text-xs">ประวัติ</span>
+        </button>
+    </nav>
+
+    <!-- Modals แจ้งเตือน -->
+    <div id="notifModal" class="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-5 hidden" onclick="if(event.target===this)toggleNotificationModal()">
+        <div class="bg-white w-full max-w-sm rounded-[2rem] p-6 space-y-4 shadow-xl animate-pop">
+            <div class="flex justify-between items-center border-b border-gray-100 pb-3">
+                <h3 class="font-bold text-lg text-[#6D4DF2]">🔔 แจ้งเตือน</h3>
+                <button onclick="toggleNotificationModal()" class="text-gray-400 font-bold text-lg">✕</button>
+            </div>
+            <div id="notifContent" class="space-y-1 max-h-[60vh] overflow-y-auto text-sm text-[#2A2550]"></div>
+        </div>
+    </div>
+
+    <div id="sterileModal" class="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-5 hidden" onclick="if(event.target===this)toggleSterileModal()">
+        <div class="bg-white w-full max-w-sm rounded-[2rem] p-6 space-y-4 shadow-xl animate-pop">
+            <div class="flex justify-between items-center border-b border-gray-100 pb-3">
+                <h3 class="font-bold text-lg text-[#6D4DF2]">🔄 ของรออบ</h3>
+                <button onclick="toggleSterileModal()" class="text-gray-400 font-bold text-lg">✕</button>
+            </div>
+            <div id="sterileList" class="space-y-4 max-h-[60vh] overflow-y-auto text-sm"></div>
+        </div>
+    </div>
+
+    <div id="returnDateModal" class="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-5 hidden">
+        <div class="bg-white w-full max-w-sm rounded-[2.5rem] p-7 space-y-5 shadow-2xl animate-pop border-4 border-[#A8E8CC]">
+            <h3 class="font-extrabold text-xl text-[#1F7A5A] text-center" id="returnItemNameTitle">ระบุวันหมดอายุใหม่</h3>
+            <p class="text-sm text-[#8A85A8] text-center font-medium">กรุณาใส่วันหมดอายุหลังจากอบฆ่าเชื้อเสร็จ</p>
+            <div class="space-y-1.5 mt-2">
+                <input type="date" id="returnExpDateInput" class="w-full input-pastel p-4 text-base font-bold text-center text-[#2A2550]">
+            </div>
+            <div class="space-y-1.5 mt-2">
+                <label class="lbl">ผู้รับเข้าคลัง</label>
+                <select id="returnOperatorSelect" class="w-full input-pastel p-4 text-sm font-bold operator-options"></select>
+            </div>
+            <input type="hidden" id="returnItemId">
+            <div class="flex gap-3 pt-3">
+                <button onclick="closeReturnModal()" class="flex-1 bg-gray-100 text-gray-500 font-bold text-base py-3.5 rounded-2xl transition active:scale-95">ยกเลิก</button>
+                <button onclick="confirmReturnSterile()" class="flex-1 bg-[#A8E8CC] text-[#1C5A43] font-extrabold text-base py-3.5 rounded-2xl shadow-md transition active:scale-95" id="confirmReturnBtn">เข้าคลัง ✨</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="alertSterileModal" class="fixed inset-0 bg-black/60 z-[70] flex items-center justify-center p-5 hidden">
+        <div class="bg-white w-full max-w-sm rounded-[2.5rem] p-8 space-y-4 shadow-2xl text-center animate-pop border-4 border-[#7C5CFF]">
+            <div class="text-6xl mb-2">♨️📦</div>
+            <h3 class="font-extrabold text-2xl text-[#6D4DF2]">กำลังส่งอบฆ่าเชื้อ!</h3>
+            <p class="text-sm font-medium text-[#8A85A8] mt-2">ย้ายรายการนี้ไปหน้า "ของรออบ" แล้ว</p>
+            <div class="bg-[#F3EFFF] p-4 rounded-2xl border border-[#ECE6FB] my-4 shadow-inner">
+                <p class="text-xs text-[#8A85A8] mb-1 font-bold">สถานที่ส่งอบ:</p>
+                <p class="text-xl font-extrabold text-[#6D4DF2]" id="alertSterileLocationText">-</p>
+            </div>
+            <button onclick="closeAlertSterileModal()" class="w-full btn-primary font-bold text-lg py-4 mt-2 transition">ตกลง</button>
+        </div>
+    </div>
+
+    <div id="emergencyCheckModal" class="fixed inset-0 bg-black/50 z-[60] flex flex-col items-center justify-center p-5 hidden">
+        <div class="bg-white w-full max-w-sm rounded-[2.5rem] p-7 shadow-2xl animate-pop border-4 border-[#DFF6EC] flex flex-col max-h-[90vh]">
+            <div class="shrink-0 space-y-2 mb-4">
+                <h3 class="font-extrabold text-xl text-[#1F7A5A] text-center">🚑 เช็คสต๊อกรถ Emer</h3>
+                <p class="text-xs text-[#8A85A8] text-center font-medium">หากของครบให้เว้นไว้ ถ้าไม่ครบให้เอาติ๊กถูกออกแล้วระบุยอดที่ขาด</p>
+            </div>
+            <div id="emergencyChecklist" class="flex-grow overflow-y-auto space-y-3 bg-[#F8F5FF] p-3 rounded-2xl border border-[#ECE6FB] shadow-inner"></div>
+            <div class="shrink-0 space-y-4 mt-4">
+                <div>
+                    <label class="lbl">ผู้ตรวจสอบ</label>
+                    <select id="emergencyCheckOperator" class="w-full input-pastel p-3.5 text-sm font-bold operator-options"></select>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="closeEmergencyModal()" class="flex-1 bg-gray-100 text-gray-500 font-bold text-sm py-3.5 rounded-2xl transition active:scale-95">ยกเลิก</button>
+                    <button onclick="confirmEmergencyCheck()" class="flex-1 bg-[#DFF6EC] text-[#1F7A5A] font-extrabold text-sm py-3.5 rounded-2xl shadow-md transition active:scale-95" id="confirmEmergencyBtn">บันทึก 📝</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ผูกบาร์โค้ดกับชื่อสินค้า -->
+    <div id="bcModal" class="fixed inset-0 bg-black/40 z-[65] flex items-end sm:items-center justify-center sm:p-5 hidden" onclick="if(event.target===this)closeBc()">
+        <div class="bg-white w-full max-w-sm rounded-t-[2rem] sm:rounded-[2rem] p-6 space-y-4 shadow-2xl animate-pop">
+            <div class="flex justify-between items-center">
+                <h3 class="font-semibold text-base text-[#2A2550]">🏷️ ผูกบาร์โค้ดกับสินค้า</h3>
+                <button onclick="closeBc()" class="text-gray-400 text-lg w-9 h-9">✕</button>
+            </div>
+            <div>
+                <label class="lbl">ชื่อสินค้า</label>
+                <input id="bcName" list="bcNames" placeholder="เลือกหรือพิมพ์ชื่อสินค้า" class="w-full input-pastel px-4 py-3.5 text-[15px]" oninput="renderBcLinked()">
+                <datalist id="bcNames"></datalist>
+            </div>
+            <div id="bcLinked"></div>
+            <div>
+                <label class="lbl">บาร์โค้ดใหม่</label>
+                <div class="relative flex items-center">
+                    <input id="bcCode" inputmode="text" placeholder="ยิงเครื่องสแกน / พิมพ์เลข / กด 📷" class="w-full input-pastel px-4 py-3.5 pr-14 text-[15px]" onkeydown="if(event.key==='Enter'){event.preventDefault();saveBc()}">
+                    <button type="button" onclick="$('bcFile').click()" class="absolute right-1.5 bg-white shadow-sm w-10 h-10 rounded-xl text-xl">📷</button>
+                </div>
+                <input type="file" id="bcFile" accept="image/*" capture="environment" class="hidden" onchange="onBcFile(this)">
+                <div id="bcMsg" class="text-[11.5px] text-[#9A96B5] mt-1.5 ml-2">สแกนกล่องสินค้า แล้วกดผูก — ครั้งต่อไปสแกนแล้วชื่อจะขึ้นเอง</div>
+            </div>
+            <button id="bcSave" onclick="saveBc()" class="w-full btn-primary font-semibold text-base py-3.5">ผูกบาร์โค้ด</button>
+        </div>
+    </div>
+
+    <div id="toast"></div>
+
+    <script>
+        let appData = {};
+        let currentActionMode = 'IN';
+        let currentOptions = [];   // ตัวเลือกของ Dropdown ค้นหา
+        let shownOptions = [];     // รายการที่แสดงอยู่ตอนนี้ (ใช้อ้างอิงตอนกดเลือก)
+        let lastLoad = 0;
+        const CACHE_KEY = 'xrayCache';
+        const OP_KEY = 'xrayOperator';
+        const EXP_WARN_DAYS = 7;   // เตือนก่อนหมดอายุกี่วัน
+        const TH_M = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+
+        const $ = id => document.getElementById(id);
+        const esc = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        const isFluoro = room => room.includes('ฟลู') || room.includes('Fluoroscopy');
+        const isEmer = room => room.includes('Emergency') || room.includes('รถฉุกเฉิน');
+        const debounce = (fn, ms) => { let t; return () => { clearTimeout(t); t = setTimeout(fn, ms); }; };
+        const normCode = s => String(s == null ? '' : s).trim().replace(/^0+/, '');
+        const pad = n => String(n).padStart(2, '0');
+        const localISO = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+        const lsGet = k => { try { return localStorage.getItem(k) || ''; } catch (e) { return ''; } };
+        const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
+
+        // ---------- วันที่ ----------
+        // รับได้ทั้ง 2027-03-01 / 1/3/2027 / ปี พ.ศ. แล้วคืนเป็น yyyy-mm-dd
+        function toISO(v) {
+            if (!v) return '';
+            const s = String(v).trim();
+            let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+            if (m) { let y = +m[1]; if (y > 2400) y -= 543; return `${y}-${pad(m[2])}-${pad(m[3])}`; }
+            m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+            if (m) { let y = +m[3]; if (y > 2400) y -= 543; return `${y}-${pad(m[2])}-${pad(m[1])}`; }
+            const d = new Date(s);
+            return isNaN(d) ? '' : localISO(d);
+        }
+        function daysLeft(v) {
+            const iso = toISO(v);
+            if (!iso) return null;
+            const [y, mo, d] = iso.split('-').map(Number);
+            const t = new Date(); t.setHours(0, 0, 0, 0);
+            return Math.round((new Date(y, mo - 1, d) - t) / 86400000);
+        }
+        function fmtD(v) {
+            const iso = toISO(v);
+            if (!iso) return v ? esc(v) : '-';
+            const [y, m, d] = iso.split('-').map(Number);
+            return `${d} ${TH_M[m - 1]} ${String(y + 543).slice(-2)}`;
+        }
+        const expSort = v => toISO(v) || '9999-99-99';
+
+        let tt;
+        function toast(m) { const t = $('toast'); t.textContent = m; t.classList.add('show'); clearTimeout(tt); tt = setTimeout(() => t.classList.remove('show'), 2400); }
+
+        function saveCache(res) { try { localStorage.setItem(CACHE_KEY, JSON.stringify(res)); } catch (e) {} }
+        function setToday(id) { $(id).value = localISO(new Date()); }
+
+        window.onload = function () {
+            setToday('transactionDate');   // วันหมดอายุเว้นว่างไว้ ให้กรอกเอง/สแกนจากบาร์โค้ด กันลืมแล้วกลายเป็นหมดอายุวันนี้
+            // แสดงข้อมูลเก่าจากเครื่องก่อน จะได้ใช้งานได้ทันที
+            try {
+                const c = localStorage.getItem(CACHE_KEY);
+                if (c) applyData(JSON.parse(c), false);
+            } catch (e) {}
+            loadData();
+        };
+        document.addEventListener('visibilitychange', () => { if (!document.hidden && Date.now() - lastLoad > 60000) loadData(); });
+
+        // Enter ในช่องชื่อสินค้า: ถ้าเป็นเลขบาร์โค้ด (จากเครื่องยิง) ให้ค้นหาสินค้า / ไม่งั้นแค่ปิดรายการ
+        $('stockForm').addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' && e.target.nodeName === 'INPUT' && e.target.type !== 'submit') {
+                e.preventDefault();
+                if (e.target.id === 'itemInputText') {
+                    const v = e.target.value.trim();
+                    if (looksLikeBarcode(v)) { applyCode(v); hideItemDropdown(); return; }
+                }
+                checkExistingSterileConfig();
+                hideItemDropdown();
+            }
+        });
+
+        // เลือกรายการจาก dropdown (ผูกครั้งเดียว ไม่ฝัง onclick ในทุกแถว)
+        $('itemDropdownList').addEventListener('mousedown', function (e) {
+            const el = e.target.closest('.dd-opt');
+            if (!el) return;
+            const opt = shownOptions[parseInt(el.dataset.i)];
+            if (opt) selectOption(opt.id, opt.name);
+        });
+
+        // ใช้ข้อมูลชุดใหม่ keepInput=true คือไม่ล้างสิ่งที่กำลังพิมพ์อยู่
+        function applyData(res, keepInput) {
+            appData = res || {};
+            const keep = {};
+            ['roomName', 'operatorSelect', 'targetRoom'].forEach(id => keep[id] = $(id).value);
+            if (!keep.operatorSelect) keep.operatorSelect = lsGet(OP_KEY);
+
+            initDropdowns();
+
+            Object.keys(keep).forEach(id => {
+                const el = $(id);
+                if (keep[id] && Array.prototype.some.call(el.options, o => o.value === keep[id])) el.value = keep[id];
+            });
+
+            updateFormFields(!!keepInput);
+            renderChips();
+            renderInventoryTable();
+            updateSterileUI();
+            checkNotifications();
+        }
+
+        function loadData() {
+            $('statusText').innerText = "กำลังอัปเดต...";
+            google.script.run
+                .withFailureHandler(() => { $('statusText').innerText = "❌ เชื่อมต่อไม่ได้"; })
+                .withSuccessHandler(res => {
+                    if (res && res.success === false) {
+                        $('statusText').innerText = "❌ " + (res.error || "เกิดข้อผิดพลาด");
+                        return;
+                    }
+                    lastLoad = Date.now();
+                    saveCache(res);
+                    applyData(res, true);
+                    $('statusText').innerText = "✅ อัปเดตล่าสุด " + new Date().toTimeString().slice(0, 5);
+                })
+                .getAppData();
+        }
+
+        function switchMainTab(tab) {
+            ['transaction', 'inventory', 'history'].forEach(t => {
+                $(`section-${t}`).classList.toggle('hidden', t !== tab);
+                $(`nav-${t}`).classList.toggle('active', t === tab);
+            });
+            if (tab === 'history') loadHistory(false);
+            window.scrollTo(0, 0);
+        }
+
+        function switchActionMode(mode) {
+            currentActionMode = mode;
+            const on = "flex-1 py-3 rounded-full text-[15px] font-semibold zz-on text-white shadow-md transition";
+            const off = "flex-1 py-3 rounded-full text-[15px] font-semibold text-[#B9B3D6] bg-transparent transition";
+            $('modeBtn-IN').className = mode === 'IN' ? on : off;
+            $('modeBtn-OUT').className = mode === 'OUT' ? on : off;
+            $('formTitle').innerText = mode === 'IN' ? "📝 บันทึกรับเข้าสินค้า" : "📤 บันทึกเบิกใช้สินค้า";
+            $('itemInputText').placeholder = mode === 'IN' ? "🔍 พิมพ์ค้นหา หรือพิมพ์ชื่อใหม่..." : "🔍 พิมพ์ค้นหา หรือเลือกสินค้าที่จะเบิก...";
+            restoreBtn();
+            updateFormFields();
+        }
+
+        function initDropdowns() {
+            const opHtml = (appData.operators || []).map(op => `<option value="${esc(op)}">${esc(op)}</option>`).join('');
+            document.querySelectorAll('.operator-options').forEach(el => el.innerHTML = opHtml);
+            const whHtml = (appData.warehouses || []).map(w => `<option value="${esc(w)}">${esc(w)}</option>`).join('');
+            document.querySelectorAll('.warehouse-options').forEach(el => el.innerHTML = whHtml);
+            const ruHtml = (appData.roomsUsed || []).map(r => `<option value="${esc(r)}">${esc(r)}</option>`).join('');
+            document.querySelectorAll('.roomsused-options').forEach(el => el.innerHTML = ruHtml);
+        }
+        function rememberOp() { lsSet(OP_KEY, $('operatorSelect').value); }
+
+        function resetItemFields() {
+            $('itemInputText').value = "";
+            $('selectedItemId').value = "";
+            $('scanBarcode').value = "";
+            $('autoCanSterile').value = "NO";
+            $('autoSterileLoc').value = "";
+            $('itemQty').value = 1;
+            $('expiryDate').value = "";
+            $('canSterile').checked = false;
+            $('sterileLocation').value = "";
+            setScan('📷 ถ่ายรูปบาร์โค้ด หรือยิงเครื่องสแกนในช่องนี้แล้วกด Enter');
+            updateLotInfo();
+        }
+
+        function updateFormFields(keepInput) {
+            const room = $('roomName').value || "";
+            const sterileDiv = $('sterileSettingField');
+            if (!keepInput) resetItemFields();
+            const inv = appData.inventory || [];
+
+            if (currentActionMode === 'IN') {
+                $('expiryFieldContainer').classList.remove('hidden');
+                $('expiryDate').required = true;
+                $('storageUseField').classList.add('hidden');
+                // ชื่อที่เคยมีในคลังนี้ขึ้นก่อน ตามด้วยชื่อจากคลังอื่น
+                const seen = new Set();
+                currentOptions = [];
+                inv.filter(i => i.room === room).concat(inv.filter(i => i.room !== room)).forEach(i => {
+                    if (!seen.has(i.name)) {
+                        seen.add(i.name);
+                        currentOptions.push({ id: i.name, name: i.name, displayText: esc(i.name) + (i.room !== room ? ` <span class="text-[11px] text-[#B9B3D6] font-medium">(เคยมีที่ ${esc(i.room)})</span>` : '') });
+                    }
+                });
+                if (isFluoro(room)) { if (!keepInput) sterileDiv.classList.remove('hidden'); }
+                else sterileDiv.classList.add('hidden');
+            } else {
+                $('expiryFieldContainer').classList.add('hidden');
+                $('expiryDate').required = false;
+                sterileDiv.classList.add('hidden');
+                const isStorage = room.includes('เก็บของ') || room.includes('คลังใหญ่');
+                $('storageUseField').classList.toggle('hidden', !isStorage);
+                // เรียงตามชื่อ แล้วล็อตที่หมดอายุก่อนขึ้นก่อน (หยิบของเก่าก่อน)
+                currentOptions = inv.filter(i => i.room === room && parseInt(i.qty) > 0)
+                    .sort((a, b) => String(a.name).localeCompare(String(b.name), 'th') || expSort(a.exp).localeCompare(expSort(b.exp)))
+                    .map(i => {
+                        const dl = daysLeft(i.exp);
+                        const warn = dl !== null && dl < 0 ? ' <b class="text-red-500">หมดอายุแล้ว</b>' : (dl !== null && dl <= EXP_WARN_DAYS ? ` <b class="text-[#C2571B]">อีก ${dl} วัน</b>` : '');
+                        return { id: i.id, name: i.name, exp: i.exp, displayText: `${esc(i.name)}<br><span class="text-[11px] text-[#8A85A8] font-medium">เหลือ ${i.qty} · EXP ${fmtD(i.exp)}${warn}</span>` };
+                    });
+            }
+            if (keepInput) checkExistingSterileConfig();
+            updateLotInfo();
+        }
+
+        // ================= Dropdown ค้นหา =================
+        let ddTimer;
+        function renderItemDropdown(filterText) {
+            const box = $('itemDropdownList');
+            const f = filterText.toLowerCase();
+            shownOptions = currentOptions.filter(o => o.name.toLowerCase().includes(f)).slice(0, 40);
+            if (shownOptions.length === 0) {
+                box.innerHTML = currentActionMode === 'IN'
+                    ? `<div class="p-4 text-sm text-[#7C5CFF] font-bold">✨ ระบบจะบันทึกเป็นชื่อใหม่ให้ทันที</div>`
+                    : `<div class="p-4 text-sm text-red-400 font-bold">❌ ไม่มีสินค้านี้ในคลังนี้</div>`;
+                return;
+            }
+            box.innerHTML = shownOptions.map((o, i) =>
+                `<div data-i="${i}" class="dd-opt p-4 border-b border-[#ECE6FB] cursor-pointer text-[#2A2550] font-semibold text-[15px]">${o.displayText}</div>`
+            ).join('');
+        }
+        function showItemDropdown() { $('itemDropdownList').classList.remove('hidden'); renderItemDropdown($('itemInputText').value.trim()); }
+        function hideItemDropdown() { $('itemDropdownList').classList.add('hidden'); }
+        function filterItemDropdown() {
+            $('selectedItemId').value = "";
+            updateLotInfo();
+            clearTimeout(ddTimer);
+            ddTimer = setTimeout(() => { showItemDropdown(); checkExistingSterileConfig(); }, 150);
+        }
+        function selectOption(id, name) {
+            $('itemInputText').value = name;
+            $('selectedItemId').value = id;
+            hideItemDropdown();
+            checkExistingSterileConfig();
+            updateLotInfo();
+        }
+        function onRoomChange() { updateFormFields(); }
+        function stepQty(d) { const q = $('itemQty'); q.value = Math.max(1, (parseInt(q.value, 10) || 1) + d); updateLotInfo(); }
+        $('itemQty').addEventListener('input', () => updateLotInfo());
+
+        // ข้อมูลล็อตที่เลือก (เฉพาะตอนเบิก)
+        function updateLotInfo() {
+            const box = $('lotInfo');
+            const it = currentActionMode === 'OUT' && $('selectedItemId').value
+                ? (appData.inventory || []).find(i => String(i.id) === String($('selectedItemId').value)) : null;
+            if (!it) { box.classList.add('hidden'); return; }
+            const q = parseInt($('itemQty').value, 10) || 0;
+            const over = q > it.qty;
+            box.className = 'mt-2 ml-1 text-xs font-semibold rounded-2xl px-3 py-2 ' + (over ? 'bg-[#FFE4EA] text-[#D92D55]' : 'bg-[#F3EFFF] text-[#6D4DF2]');
+            box.innerHTML = `ล็อต EXP ${fmtD(it.exp)} · เหลือ ${it.qty} ชิ้น` + (over ? ` — เบิกเกินยอดคงเหลือ` : '');
+        }
+
+        function checkExistingSterileConfig() {
+            const inputVal = $('itemInputText').value.trim();
+            const room = $('roomName').value || "";
+            const sterileDiv = $('sterileSettingField');
+            $('autoCanSterile').value = "NO";
+            $('autoSterileLoc').value = "";
+            if (currentActionMode === 'IN' && inputVal !== "" && isFluoro(room)) {
+                const existingItem = (appData.inventory || []).find(i => i.name === inputVal && i.room === room && i.canSterile === "YES");
+                if (existingItem) {
+                    sterileDiv.classList.add('hidden');
+                    $('autoCanSterile').value = "YES";
+                    $('autoSterileLoc').value = existingItem.sterileLoc || "";
+                } else {
+                    sterileDiv.classList.remove('hidden');
+                }
+            } else if (currentActionMode === 'OUT' || !isFluoro(room)) {
+                sterileDiv.classList.add('hidden');
+            }
+        }
+
+        // ================= บาร์โค้ด (ถ่ายรูป / เครื่องยิง) แบบเดียวกับเว็บ Intervention =================
+        function setScan(html, kind) {
+            const el = $('scanStatus');
+            el.className = 'text-[11.5px] mt-1.5 ml-2 ' + ({ ok: 'text-[#1F7A5A] font-semibold', warn: 'text-[#C2571B] font-semibold', err: 'text-[#D92D55] font-semibold' }[kind] || 'text-[#8A85A8]');
+            el.innerHTML = html;
+        }
+        // เลขบาร์โค้ด = ไม่มีช่องว่าง และมีตัวเลขอย่างน้อย 8 ตัว และไม่ใช่ชื่อสินค้าที่มีอยู่
+        function looksLikeBarcode(v) {
+            return !!v && !/\s/.test(v) && (v.replace(/\D/g, '').length >= 8) && !currentOptions.some(o => o.name === v);
+        }
+
+        // อ่านรหัส GS1 (GTIN / วันหมดอายุ / Lot) ที่พบบนอุปกรณ์การแพทย์ ถ้าไม่ใช่ GS1 จะคืนค่าว่าง
+        function parseGS1(raw) {
+            const out = { gtin: '', expire: '', lot: '' };
+            let s = String(raw || '').replace(/^\][A-Za-z]\d/, '');
+            const ai = {};
+            if (s.includes('(')) {
+                const re = /\((\d{2,4})\)([^(]*)/g; let m;
+                while ((m = re.exec(s))) ai[m[1]] = m[2].trim();
+            } else {
+                s = s.replace(/^[^0-9]+/, '');
+                const FIXED = { '00': 18, '01': 14, '02': 14, '11': 6, '12': 6, '13': 6, '15': 6, '16': 6, '17': 6, '20': 2 };
+                const VAR = ['10', '21', '22', '30', '37', '91', '92', '93', '94', '95', '96', '97', '98', '99'];
+                let i = 0;
+                while (i < s.length) {
+                    if (s.charCodeAt(i) === 29) { i++; continue; }
+                    const k = s.substr(i, 2);
+                    if (FIXED[k]) { ai[k] = s.substr(i + 2, FIXED[k]); i += 2 + FIXED[k]; }
+                    else if (VAR.includes(k)) { let j = s.indexOf('\x1d', i + 2); if (j < 0) j = s.length; ai[k] = s.substring(i + 2, j); i = j + 1; }
+                    else break;
+                }
+            }
+            if (/^\d{14}$/.test(ai['01'] || '')) out.gtin = ai['01'];
+            if (/^\d{6}$/.test(ai['17'] || '')) {
+                const y = 2000 + parseInt(ai['17'].substr(0, 2), 10), mm = ai['17'].substr(2, 2);
+                let dd = ai['17'].substr(4, 2);
+                if (dd === '00') dd = pad(new Date(y, parseInt(mm, 10), 0).getDate());
+                out.expire = `${y}-${mm}-${dd}`;
+            }
+            out.lot = ai['10'] || '';
+            return out;
+        }
+        const codeName = raw => { const g = parseGS1(raw); return (appData.barcodes || {})[normCode(g.gtin || String(raw || '').trim())] || ''; };
+
+        let zxingPromise = null;
+        function loadZXing() {
+            if (window.ZXing) return Promise.resolve();
+            if (!zxingPromise) zxingPromise = new Promise((ok, no) => {
+                const s = document.createElement('script');
+                s.src = 'https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js';
+                s.onload = ok; s.onerror = () => { zxingPromise = null; no(new Error('โหลดตัวอ่านบาร์โค้ดไม่สำเร็จ')); };
+                document.head.appendChild(s);
+            });
+            return zxingPromise;
+        }
+        function makeCanvas_(img, w, h, rot, crop) {
+            const sx = crop ? crop.x : 0, sy = crop ? crop.y : 0, sw = crop ? crop.w : img.width, sh = crop ? crop.h : img.height;
+            const c = document.createElement('canvas'), swap = rot % 180 !== 0;
+            c.width = swap ? h : w; c.height = swap ? w : h;
+            const g = c.getContext('2d', { willReadFrequently: true });
+            g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height);
+            g.translate(c.width / 2, c.height / 2); g.rotate(rot * Math.PI / 180);
+            g.drawImage(img, sx, sy, sw, sh, -w / 2, -h / 2, w, h);
+            return c;
+        }
+        function zxingDecodeCanvas_(c, hints) {
+            const reader = new ZXing.MultiFormatReader(); reader.setHints(hints);
+            const src = new ZXing.HTMLCanvasElementLuminanceSource(c);
+            const tries = [new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(src)), new ZXing.BinaryBitmap(new ZXing.GlobalHistogramBinarizer(src))];
+            if (src.invert) tries.push(new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(src.invert())));
+            for (const bb of tries) { try { return reader.decode(bb).getText(); } catch (e) {} }
+            return null;
+        }
+        const ZXW_BASE_ = 'https://cdn.jsdelivr.net/npm/zxing-wasm@2/dist/reader/';
+        let zxwPromise_ = null;
+        function loadZxWasm_() {
+            if (!zxwPromise_) zxwPromise_ = import('https://cdn.jsdelivr.net/npm/zxing-wasm@2/dist/es/reader/index.js').then(m => {
+                const ov = { locateFile: (path, prefix) => path.endsWith('.wasm') ? ZXW_BASE_ + path : prefix + path };
+                if (typeof m.prepareZXingModule === 'function') m.prepareZXingModule({ overrides: ov, fireImmediately: false });
+                else if (typeof m.setZXingModuleOverrides === 'function') m.setZXingModuleOverrides(ov);
+                return m;
+            }).catch(e => { zxwPromise_ = null; throw e; });
+            return zxwPromise_;
+        }
+        async function decodeBarcodeFromFile(file) {
+            const bmp = await createImageBitmap(file);
+            let firstFound = null;
+            // 1) ตัวอ่านของเบราว์เซอร์ (Chrome Android)
+            if ('BarcodeDetector' in window) {
+                try {
+                    const vals = (await new BarcodeDetector().detect(bmp)).map(f => f.rawValue).filter(Boolean);
+                    if (vals.length) { const hit = vals.find(codeName); if (hit) return hit; firstFound = vals[0]; }
+                } catch (e) {}
+            }
+            // 2) zxing-wasm (แม่นที่สุด อ่าน DataMatrix บนกล่องได้ดี)
+            try {
+                const m = await loadZxWasm_();
+                const vals = ((await m.readBarcodes(file, {
+                    formats: ['DataMatrix', 'QRCode', 'Code128', 'Code39', 'EAN13', 'EAN8', 'UPCA', 'ITF', 'PDF417'],
+                    tryHarder: true, tryRotate: true, tryInvert: true, tryDownscale: true, maxNumberOfSymbols: 6
+                })) || []).map(r => r.text).filter(Boolean);
+                if (vals.length) { const hit = vals.find(codeName); return hit || firstFound || vals[0]; }
+            } catch (e) { console.warn('zxing-wasm:', e); }
+            if (firstFound) return firstFound;
+            // 3) ZXing-js ลองหลายขนาด/มุม/ส่วนของภาพ
+            await loadZXing();
+            const hints = new Map();
+            hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
+            hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [ZXing.BarcodeFormat.DATA_MATRIX, ZXing.BarcodeFormat.QR_CODE, ZXing.BarcodeFormat.CODE_128,
+                ZXing.BarcodeFormat.CODE_39, ZXing.BarcodeFormat.EAN_13, ZXing.BarcodeFormat.EAN_8, ZXing.BarcodeFormat.UPC_A, ZXing.BarcodeFormat.ITF, ZXing.BarcodeFormat.PDF_417]);
+            const W0 = bmp.width, H0 = bmp.height, crops = [null];
+            [2, 3].forEach(n => {
+                const cw = W0 / n * 1.25, ch = H0 / n * 1.25;
+                for (let i = 0; i < n; i++) for (let j = 0; j < n; j++)
+                    crops.push({ x: Math.min(Math.max(0, W0 / n * i - W0 / n * 0.125), W0 - cw), y: Math.min(Math.max(0, H0 / n * j - H0 / n * 0.125), H0 - ch), w: cw, h: ch });
+            });
+            let n = 0;
+            for (const crop of crops) for (const ms of [1600, 1000, 2200]) {
+                const sw = crop ? crop.w : W0, sh = crop ? crop.h : H0, k = ms / Math.max(sw, sh);
+                for (const rot of [0, 90, 180, 270]) {
+                    const t = zxingDecodeCanvas_(makeCanvas_(bmp, Math.round(sw * k), Math.round(sh * k), rot, crop), hints);
+                    if (t) { if (codeName(t)) return t; if (!firstFound) firstFound = t; }
+                    if (++n % 6 === 0) await new Promise(r => setTimeout(r, 0));
+                }
+            }
+            if (firstFound) return firstFound;
+            throw new Error('อ่านบาร์โค้ดจากรูปไม่ได้');
+        }
+        async function onScanFile(input) {
+            const f = input.files && input.files[0];
+            input.value = '';
+            if (!f) return;
+            setScan('<span class="spin"></span> กำลังอ่านบาร์โค้ด...');
+            try { applyCode(await decodeBarcodeFromFile(f)); }
+            catch (e) { setScan('อ่านบาร์โค้ดไม่ได้ ลองถ่ายให้ใกล้ ชัด ไม่สะท้อนแสง หรือพิมพ์ชื่อเอง', 'err'); }
+        }
+
+        // ได้รหัสมาแล้ว: นำเข้า = เติมชื่อ/วันหมดอายุ (ถ้ารหัสใหม่ ระบบจะจำไว้ตอนบันทึก) / เบิก = เลือกล็อตที่หมดอายุก่อน
+        function applyCode(raw) {
+            const g = parseGS1(raw);
+            const code = g.gtin || String(raw || '').trim();
+            const nb = normCode(code);
+            let name = (appData.barcodes || {})[nb] || '';
+            const t = String(raw || '').trim();
+            if (!name && (appData.inventory || []).some(i => i.name === t)) name = t;   // QR ที่เป็นชื่อสินค้า
+            const expTxt = g.expire ? ` · EXP ${fmtD(g.expire)}` : '';
+
+            if (currentActionMode === 'IN') {
+                $('scanBarcode').value = nb;
+                if (g.expire) $('expiryDate').value = g.expire;
+                if (name) {
+                    $('itemInputText').value = name;
+                    checkExistingSterileConfig();
+                    setScan(`✓ ${esc(name)}${expTxt}`, 'ok');
+                    $('itemQty').focus();
+                } else {
+                    $('itemInputText').value = '';
+                    $('itemInputText').focus();
+                    setScan(`บาร์โค้ดใหม่ ${esc(code)}${expTxt} — พิมพ์หรือเลือกชื่อสินค้า แล้วกดบันทึก ระบบจะจำบาร์โค้ดนี้ไว้ให้`, 'warn');
+                }
+                return;
+            }
+            if (!name) {
+                $('itemInputText').value = '';
+                setScan(`ยังไม่รู้จักบาร์โค้ด ${esc(code)} <button type="button" onclick="openBc('', '${esc(nb)}')" class="ml-1 px-2.5 py-1 rounded-full bg-[#EFEAFF] text-[#6D4DF2]">🏷️ ผูกกับสินค้า</button>`, 'err');
+                return;
+            }
+            const inv = appData.inventory || [];
+            const lotsIn = room => inv.filter(i => i.room === room && i.name === name && parseInt(i.qty) > 0).sort((a, b) => expSort(a.exp).localeCompare(expSort(b.exp)));
+            let lots = lotsIn($('roomName').value), moved = '';
+            if (!lots.length) {
+                const other = inv.find(i => i.name === name && parseInt(i.qty) > 0);
+                if (!other) { setScan(`${esc(name)} — ของหมด ไม่มีในคลังไหนเลย`, 'err'); return; }
+                $('roomName').value = other.room; updateFormFields(); lots = lotsIn(other.room); moved = ` (ย้ายไปคลัง ${esc(other.room)})`;
+            }
+            const lot = lots.find(l => g.expire && toISO(l.exp) === g.expire) || lots[0];
+            selectOption(lot.id, name);
+            setScan(`✓ ${esc(name)} · ล็อต EXP ${fmtD(lot.exp)}${moved}`, 'ok');
+        }
+
+        // ================= ผูกบาร์โค้ดกับชื่อ (ของที่มีอยู่แล้วแต่ยังไม่มีบาร์โค้ด) =================
+        const codesOf = name => Object.keys(appData.barcodes || {}).filter(k => appData.barcodes[k] === name);
+        function openBc(name, code) {
+            const names = [...new Set((appData.inventory || []).map(i => i.name))].sort((a, b) => a.localeCompare(b, 'th'));
+            $('bcNames').innerHTML = names.map(n => `<option value="${esc(n)}"></option>`).join('');
+            $('bcName').value = name || '';
+            $('bcName').readOnly = !!name;
+            $('bcCode').value = code || '';
+            bcMsg('สแกนกล่องสินค้า แล้วกดผูก — ครั้งต่อไปสแกนแล้วชื่อจะขึ้นเอง');
+            renderBcLinked();
+            $('bcModal').classList.remove('hidden');
+            setTimeout(() => (name ? $('bcCode') : $('bcName')).focus(), 80);
+        }
+        function closeBc() { $('bcModal').classList.add('hidden'); }
+        function bcMsg(t, kind) { const el = $('bcMsg'); el.className = 'text-[11.5px] mt-1.5 ml-2 ' + ({ ok: 'text-[#1F7A5A] font-semibold', err: 'text-[#D92D55] font-semibold' }[kind] || 'text-[#9A96B5]'); el.innerHTML = t; }
+        function renderBcLinked() {
+            const name = $('bcName').value.trim(), codes = name ? codesOf(name) : [];
+            $('bcLinked').innerHTML = codes.length
+                ? `<label class="lbl">บาร์โค้ดที่ผูกไว้แล้ว</label><div>${codes.map(c => `<span class="bc-chip">${esc(c)}<button data-un="${esc(c)}" aria-label="ยกเลิกการผูก">✕</button></span>`).join('')}</div>`
+                : (name ? '<div class="text-xs text-[#9A96B5] ml-1">ยังไม่มีบาร์โค้ดผูกกับสินค้านี้</div>' : '');
+        }
+        $('bcLinked').addEventListener('click', e => {
+            const b = e.target.closest('[data-un]'); if (!b) return;
+            if (!confirm('ยกเลิกการผูกบาร์โค้ด ' + b.dataset.un + ' ?')) return;
+            google.script.run.withFailureHandler(err => bcMsg(esc(err.message), 'err')).withSuccessHandler(res => {
+                if (!res || !res.success) { bcMsg(esc(res && res.message), 'err'); return; }
+                appData.barcodes = res.barcodes; saveCache(appData); renderBcLinked(); renderInventoryTable(); toast('ยกเลิกการผูกแล้ว');
+            }).unlinkBarcode(b.dataset.un);
+        });
+        async function onBcFile(input) {
+            const f = input.files && input.files[0]; input.value = '';
+            if (!f) return;
+            bcMsg('<span class="spin"></span> กำลังอ่านบาร์โค้ด...');
+            try { const raw = await decodeBarcodeFromFile(f); const g = parseGS1(raw); $('bcCode').value = g.gtin || String(raw).trim(); bcMsg('✓ อ่านได้แล้ว กดผูกบาร์โค้ด', 'ok'); }
+            catch (e) { bcMsg('อ่านบาร์โค้ดไม่ได้ ลองถ่ายให้ใกล้และชัดขึ้น หรือพิมพ์เลขเอง', 'err'); }
+        }
+        function saveBc() {
+            const name = $('bcName').value.trim(), raw = $('bcCode').value.trim();
+            if (!name) { bcMsg('กรุณาเลือกชื่อสินค้า', 'err'); return; }
+            if (!raw) { bcMsg('กรุณาสแกนหรือพิมพ์เลขบาร์โค้ด', 'err'); return; }
+            const g = parseGS1(raw), nb = normCode(g.gtin || raw), old = (appData.barcodes || {})[nb];
+            if (old === name) { bcMsg('บาร์โค้ดนี้ผูกกับสินค้านี้อยู่แล้ว ✓', 'ok'); return; }
+            if (old && !confirm(`บาร์โค้ดนี้ผูกกับ "${old}" อยู่ ต้องการเปลี่ยนเป็น "${name}" ?`)) return;
+            const btn = $('bcSave'); btn.disabled = true; btn.textContent = '⏳ กำลังบันทึก...';
+            google.script.run.withFailureHandler(err => { btn.disabled = false; btn.textContent = 'ผูกบาร์โค้ด'; bcMsg(esc(err.message), 'err'); })
+                .withSuccessHandler(res => {
+                    btn.disabled = false; btn.textContent = 'ผูกบาร์โค้ด';
+                    if (!res || !res.success) { bcMsg(esc(res && res.message), 'err'); return; }
+                    appData.barcodes = res.barcodes; saveCache(appData);
+                    $('bcCode').value = ''; renderBcLinked(); renderInventoryTable();
+                    bcMsg(`✓ ผูกกับ ${esc(name)} แล้ว สแกนกล่องถัดไปต่อได้เลย`, 'ok');
+                    toast('🏷️ ผูกบาร์โค้ดแล้ว');
+                    // ถ้าเปิดมาจากตอนเบิก ให้ใส่สินค้านั้นในฟอร์มต่อเลย
+                    if (currentActionMode === 'OUT' && !$('section-transaction').classList.contains('hidden') && !$('itemInputText').value) { closeBc(); applyCode(nb); }
+                }).linkBarcode(nb, name);
+        }
+
+        // ================= บันทึกฟอร์ม =================
+        function restoreBtn() {
+            $('submitBtn').disabled = false;
+            $('submitBtn').innerText = currentActionMode === 'IN' ? "บันทึกข้อมูล ✨" : "ยืนยันการเบิก ✨";
+        }
+
+        function submitStockForm(event) {
+            event.preventDefault();
+            let itemName = $('itemInputText').value.trim();
+            let targetId = $('selectedItemId').value;
+            const qty = parseInt($('itemQty').value, 10) || 0;
+            if (qty < 1) { alert('จำนวนต้องมากกว่า 0'); return; }
+            if (!$('operatorSelect').value) { alert('กรุณาเลือกผู้ทำรายการ'); return; }
+
+            if (currentActionMode === 'IN') {
+                if (!itemName) { alert('กรุณาระบุชื่อสินค้า'); return; }
+                targetId = "";
+            } else {
+                if (!targetId) {
+                    const matched = currentOptions.find(opt => opt.name === itemName);
+                    if (matched) targetId = matched.id;
+                    else { alert('กรุณาเลือกรายการสินค้าจากเมนูตัวเลือก'); return; }
+                }
+                const found = (appData.inventory || []).find(i => String(i.id) === String(targetId));
+                if (found) {
+                    itemName = found.name;
+                    if (qty > found.qty) { alert(`ล็อตนี้เหลือ ${found.qty} ชิ้น เบิก ${qty} ไม่ได้`); return; }
+                }
+            }
+
+            let finalCanSterile = $('canSterile').checked;
+            let finalSterileLoc = $('sterileLocation').value;
+            if (currentActionMode === 'IN' && $('autoCanSterile').value === "YES") {
+                finalCanSterile = true;
+                finalSterileLoc = $('autoSterileLoc').value;
+            }
+            // บาร์โค้ด: ส่งไปให้ระบบจำ เฉพาะรหัสใหม่ หรือรหัสที่ผูกกับชื่อเดียวกันอยู่แล้ว (กันผูกผิดตัว)
+            const bc = $('scanBarcode').value;
+            const bcName = bc ? (appData.barcodes || {})[bc] : '';
+            const sendBarcode = currentActionMode === 'IN' && bc && (!bcName || bcName === itemName) ? bc : '';
+
+            const payload = {
+                actionType: currentActionMode,
+                id: targetId,
+                room: $('roomName').value,
+                name: itemName,
+                qty: qty,
+                transactionDate: $('transactionDate').value,
+                expiryDate: currentActionMode === 'IN' ? $('expiryDate').value : '',
+                operator: $('operatorSelect').value,
+                usedRoom: $('storageUseField').classList.contains('hidden') ? '' : $('targetRoom').value,
+                canSterile: finalCanSterile,
+                sterileLocation: finalSterileLoc,
+                barcode: sendBarcode
+            };
+
+            $('submitBtn').innerText = "⏳ กำลังบันทึก...";
+            $('submitBtn').disabled = true;
+            rememberOp();
+
+            google.script.run
+                .withFailureHandler(err => { restoreBtn(); alert('เกิดข้อผิดพลาด: ' + (err && err.message ? err.message : err)); })
+                .withSuccessHandler(res => {
+                    restoreBtn();
+                    if (res.success === false) { alert(res.message); return; }
+                    histStale = true;
+                    const msg = (currentActionMode === 'IN' ? '📥 รับเข้า ' : '📤 เบิก ') + itemName + ' x' + qty + ' แล้ว';
+                    // อยู่หน้าเดิม: เก็บคลัง/ผู้ทำรายการ/วันที่ไว้ ล้างแค่ช่องสินค้า จะได้บันทึกรายการต่อไปได้เลย
+                    if (res.data && res.data.success) { lastLoad = Date.now(); saveCache(res.data); applyData(res.data, false); }
+                    else { resetItemFields(); loadData(); }
+                    toast(msg);
+                    if (res.triggerSterile) {
+                        $('alertSterileLocationText').innerText = res.sterileLoc || "ศูนย์เครื่องมือกลาง";
+                        $('alertSterileModal').classList.remove('hidden');
+                    }
+                })
+                .processStockTransaction(payload);
+        }
+
+        function closeAlertSterileModal() { $('alertSterileModal').classList.add('hidden'); }
+
+        // ================= หน้าคลังสินค้า =================
+        let invRoom = 'ALL';
+        const openKeys = new Set();
+        const debouncedInv = debounce(() => renderInventoryTable(), 200);
+
+        // ไอคอนประจำคลัง (สีพื้นบอกสถานะ: แดง=หมด/หมดอายุ ส้ม=ใกล้หมดอายุ เหลือง=ใกล้หมด เขียว=ปกติ)
+        function whIcon(room) {
+            const r = String(room || '');
+            if (isEmer(r)) return '🚑';
+            if (/mammo/i.test(r)) return '🎀';
+            if (isFluoro(r)) return '🩻';
+            if (r.includes('ใหญ่') || r.includes('เก็บ')) return '🏬';
+            return '📦';
+        }
+        const TONE = { exp: 't-red', out: 't-red', soon: 't-orange', low: 't-yellow', ok: 't-green' };
+
+        // จัดกลุ่มตามชื่อ+คลัง พร้อมสถานะ
+        function buildGroups() {
+            const grouped = {};
+            (appData.inventory || []).forEach(item => {
+                const key = item.name + "\u0001" + item.room;
+                if (!grouped[key]) grouped[key] = { key, name: item.name, room: item.room, totalQty: 0, minQty: 0, lots: [], zeroIds: [] };
+                const g = grouped[key];
+                const q = parseInt(item.qty) || 0;
+                g.totalQty += Math.max(0, q);
+                if (item.minQty && !g.minQty) g.minQty = item.minQty;
+                if (q > 0) g.lots.push(Object.assign({}, item, { _dl: daysLeft(item.exp) }));
+                else g.zeroIds.push(item.id);     // แถวจำนวน 0 = ของหมดแล้ว (ระบบเก็บไว้ให้เห็นว่าหมด)
+            });
+            return Object.values(grouped).map(g => {
+                g.minQty = g.minQty || 2;
+                g.lots.sort((a, b) => expSort(a.exp).localeCompare(expSort(b.exp)));
+                g.out = g.totalQty <= 0;
+                g.low = !g.out && g.totalQty <= g.minQty;
+                g.expLots = g.lots.filter(l => l._dl !== null && l._dl < 0);
+                g.soonLots = g.lots.filter(l => l._dl !== null && l._dl >= 0 && l._dl <= EXP_WARN_DAYS);
+                g.exp = g.expLots.length > 0;
+                g.soon = g.soonLots.length > 0;
+                g.st = g.exp ? 'exp' : g.out ? 'out' : g.soon ? 'soon' : g.low ? 'low' : 'ok';
+                return g;
+            });
+        }
+        const ST_RANK = { exp: 0, out: 1, soon: 2, low: 3, ok: 4 };
+
+        // ตัวกรอง: แสดงเฉพาะคลังที่มีของ
+        function renderChips() {
+            const has = new Set(buildGroups().map(g => g.room));
+            const rooms = (appData.warehouses || []).filter(w => has.has(w)).concat([...has].filter(r => !(appData.warehouses || []).includes(r)));
+            if (invRoom !== 'ALL' && !rooms.includes(invRoom)) invRoom = 'ALL';
+            $('roomChips').innerHTML = ['ALL'].concat(rooms).map(r => `<button class="chip${r === invRoom ? ' on' : ''}" data-room="${esc(r)}">${r === 'ALL' ? 'ทุกคลัง' : whIcon(r) + ' ' + esc(r)}</button>`).join('');
+        }
+        $('roomChips').addEventListener('click', e => {
+            const b = e.target.closest('[data-room]'); if (!b) return;
+            invRoom = b.dataset.room; renderChips(); renderInventoryTable();
+        });
+
+        function renderInventoryTable() {
+            const container = $('inventoryList');
+            $('emergencyCheckBtnContainer').classList.toggle('hidden', !isEmer(invRoom));
+            const q = $('invSearch').value.trim().toLowerCase();
+            // ของที่มีแจ้งเตือนขึ้นก่อน: หมดอายุ → หมด → ใกล้หมดอายุ → ใกล้หมด → ที่เหลือเรียงตามชื่อ
+            const groups = buildGroups().filter(g => invRoom === 'ALL' || g.room === invRoom).filter(g => !q || g.name.toLowerCase().includes(q))
+                .sort((a, b) => (ST_RANK[a.st] - ST_RANK[b.st]) || a.name.localeCompare(b.name, 'th'));
+            $('invCount').textContent = groups.length + ' รายการ';
+            if (!groups.length) {
+                container.innerHTML = `<div class="text-center py-10"><span class="text-4xl block mb-2">📦</span><p class="text-[#8A85A8] font-semibold">${q ? 'ไม่พบรายการที่ค้นหา' : 'ยังไม่มีของในคลังนี้'}</p></div>`;
+                return;
+            }
+            container.innerHTML = groups.map(g => {
+                const badges = (g.exp ? '<span class="badge b-exp">หมดอายุ</span>' : '') + (g.out ? '<span class="badge b-out">หมดแล้ว</span>' : '') +
+                    (g.soon ? '<span class="badge b-soon">ใกล้หมดอายุ</span>' : '') + (g.low ? '<span class="badge b-low">ใกล้หมด</span>' : '');
+                const lots = g.lots.map(l => {
+                    const dl = l._dl, lq = parseInt(l.qty) || 0;
+                    const tag = dl === null ? '' : dl < 0 ? '<span class="badge b-exp">หมดอายุแล้ว</span>' : dl <= EXP_WARN_DAYS ? `<span class="badge b-soon">อีก ${dl} วัน</span>` : '';
+                    const del = (dl !== null && dl < 0) ? `<button data-del="${esc(l.id)}" aria-label="ลบล็อตนี้" class="text-[#D92D55] bg-[#FFE1E6] w-9 h-9 rounded-xl text-base shrink-0">🗑️</button>` : '';
+                    return `<div class="lot"><div class="min-w-0"><div class="text-sm font-semibold">EXP <b class="text-[#6D4DF2]">${fmtD(l.exp)}</b> ${tag}</div><div class="text-[11.5px] text-[#8A85A8]">เหลือ ${lq} ชิ้น${l.canSterile === 'YES' ? ' · ♨️ ส่งอบได้' : ''}</div></div>${del}</div>`;
+                }).join('') || `<div class="lot"><div class="text-sm text-[#D92D55] font-semibold">ของหมดแล้ว — รับเข้าใหม่ได้ด้วยปุ่มด้านล่าง</div>${g.zeroIds.length ? `<button data-del="${esc(g.zeroIds.join(','))}" class="text-xs text-[#8A85A8] bg-[#F5F4FA] px-3 py-2 rounded-xl shrink-0">ไม่ใช้แล้ว ลบ</button>` : ''}</div>`;
+                return `<div class="inv-row${openKeys.has(g.key) ? ' open' : ''}" data-key="${esc(g.key)}" id="row-${encodeURIComponent(g.key)}">
+                    <button class="inv-head" data-toggle="1">
+                        <span class="tile ${TONE[g.st]}">${whIcon(g.room)}</span>
+                        <span class="flex-1 min-w-0">
+                            <span class="block font-semibold text-[15px] text-[#2A2550] truncate">${esc(g.name)}</span>
+                            <span class="block text-[11.5px] text-[#8A85A8] truncate">${esc(g.room)}${g.lots.length ? ' · ' + g.lots.length + ' ล็อต' : ''}</span>
+                            ${badges ? `<span class="block mt-1">${badges}</span>` : ''}
+                        </span>
+                        <span class="qty-pill${g.low || g.out ? ' low' : ''}">${g.totalQty}</span>
+                        <span class="chev">▼</span>
+                    </button>
+                    <div class="inv-body">
+                        ${lots}
+                        <div class="flex gap-2 mt-3">
+                            <button data-act="OUT" class="act bg-[#EFEAFF] text-[#6D4DF2]"${g.totalQty > 0 ? '' : ' disabled style="opacity:.45"'}>📤 เบิก</button>
+                            <button data-act="IN" class="act bg-[#DDF5EA] text-[#1F7A5A]">📥 รับเข้าเพิ่ม</button>
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        $('inventoryList').addEventListener('click', e => {
+            const row = e.target.closest('.inv-row'); if (!row) return;
+            const g = buildGroups().find(x => x.key === row.dataset.key);
+            const del = e.target.closest('[data-del]');
+            if (del) { deleteItem(del.dataset.del); return; }
+            const act = e.target.closest('[data-act]');
+            if (act && g) { if (!act.disabled) quickAction(act.dataset.act, g.room, g.name); return; }
+            if (e.target.closest('[data-toggle]')) {
+                const k = row.dataset.key;
+                if (openKeys.has(k)) openKeys.delete(k); else openKeys.add(k);
+                row.classList.toggle('open');
+            }
+        });
+
+        // ปุ่มลัดจากหน้าคลัง → ไปหน้าทำรายการพร้อมเลือกคลัง/สินค้าให้
+        function quickAction(mode, room, name) {
+            switchMainTab('transaction');
+            switchActionMode(mode);
+            $('roomName').value = room;
+            updateFormFields();
+            if (mode === 'OUT') {
+                const opt = currentOptions.find(o => o.name === name);
+                if (opt) selectOption(opt.id, opt.name);
+            } else {
+                $('itemInputText').value = name;
+                checkExistingSterileConfig();
+            }
+            $('itemQty').focus();
+        }
+
+        function deleteItem(ids) {
+            const list = String(ids).split(',').filter(Boolean);
+            if (list.length > 1 || !(appData.inventory || []).some(i => String(i.id) === list[0] && parseInt(i.qty) > 0)) {
+                if (!confirm('ลบรายการนี้ออกจากหน้าคลังใช่หรือไม่?')) return;
+            } else if (!confirm('ต้องการลบล็อตนี้ออกจากคลังใช่หรือไม่?')) return;
+            const id = list.shift();
+            if (list.length) { list.forEach(x => google.script.run.deleteInventoryItem(x, $('operatorSelect').value)); }
+            toast('กำลังลบ...');
+            google.script.run
+                .withFailureHandler(err => alert('ลบไม่สำเร็จ: ' + (err && err.message ? err.message : err)))
+                .withSuccessHandler(res => {
+                    if (res && res.success === false) { alert(res.message || 'ลบไม่สำเร็จ'); return; }
+                    histStale = true;
+                    if (res && res.data && res.data.success) { saveCache(res.data); applyData(res.data, true); }
+                    else loadData();
+                    toast('ลบแล้ว ✓');
+                })
+                .deleteInventoryItem(id, $('operatorSelect').value);
+        }
+
+        // ================= หน้าประวัติ =================
+        let histRows = null, histStale = true, histType = 'ALL', histLimit = 80, histLoading = false;
+        const debouncedHist = debounce(() => { histLimit = 80; renderHistory(); }, 200);
+        const H_TYPES = [['ALL', 'ทั้งหมด'], ['รับเข้า', '📥 รับเข้า'], ['เบิกใช้', '📤 เบิกใช้'], ['รับคืนจากอบ', '♨️ รับคืนจากอบ'], ['ลบออก', '🗑️ ลบออก']];
+        const H_STYLE = { 'รับเข้า': ['h-in', '📥', '+'], 'เบิกใช้': ['h-out', '📤', '−'], 'รับคืนจากอบ': ['h-ret', '♨️', '+'], 'ลบออก': ['h-del', '🗑️', '−'] };
+
+        function loadHistory(force) {
+            if (histLoading || (!force && !histStale && histRows)) { renderHistory(); return; }
+            histLoading = true;
+            if (!histRows) $('historyList').innerHTML = '<div class="text-center py-10 text-[#8A85A8]"><span class="spin"></span> กำลังโหลดประวัติ...</div>';
+            google.script.run
+                .withFailureHandler(err => { histLoading = false; $('historyList').innerHTML = `<p class="text-center py-8 text-[#D92D55]">โหลดไม่สำเร็จ: ${esc(err && err.message)}</p>`; })
+                .withSuccessHandler(res => {
+                    histLoading = false;
+                    if (!res || res.success === false) { $('historyList').innerHTML = `<p class="text-center py-8 text-[#D92D55]">โหลดไม่สำเร็จ: ${esc(res && res.error)}</p>`; return; }
+                    histRows = res.rows || []; histStale = false; renderHistory();
+                })
+                .getHistory(1000);
+        }
+        $('histChips').addEventListener('click', e => {
+            const b = e.target.closest('[data-ht]'); if (!b) return;
+            histType = b.dataset.ht; histLimit = 80; renderHistory();
+        });
+        function renderHistory() {
+            $('histChips').innerHTML = H_TYPES.map(([k, t]) => `<button class="chip${k === histType ? ' on' : ''}" data-ht="${esc(k)}">${t}</button>`).join('');
+            if (!histRows) return;
+            const q = $('histSearch').value.trim().toLowerCase();
+            const rows = histRows.filter(r => (histType === 'ALL' || r.type === histType) &&
+                (!q || [r.name, r.operator, r.room, r.note].join(' ').toLowerCase().includes(q)));
+            if (!rows.length) {
+                $('historyList').innerHTML = `<div class="text-center py-10"><span class="text-4xl block mb-2">🕘</span><p class="text-[#8A85A8] font-semibold">${histRows.length ? 'ไม่พบรายการตามที่ค้นหา' : 'ยังไม่มีประวัติ (เริ่มบันทึกตั้งแต่ใช้เวอร์ชันนี้)'}</p></div>`;
+                return;
+            }
+            let html = '', day = '';
+            rows.slice(0, histLimit).forEach(r => {
+                const d = (r.ts || r.date || '').slice(0, 10);
+                if (d !== day) { day = d; html += `<div class="h-day">${fmtD(d)}</div>`; }
+                const st = H_STYLE[r.type] || ['h-out', '•', ''];
+                html += `<div class="h-row"><span class="tile ${st[0]}">${st[1]}</span>
+                    <div class="flex-1 min-w-0">
+                        <div class="font-semibold text-sm text-[#2A2550] truncate">${esc(r.name)}</div>
+                        <div class="text-[11.5px] text-[#8A85A8] truncate">${esc(r.type)} · ${esc(r.room)}${r.note ? ' → ' + esc(r.note) : ''}</div>
+                        <div class="text-[11px] text-[#B9B3D6]">${esc((r.ts || '').slice(11, 16))} น. · ${esc(r.operator || '-')}${r.exp ? ' · EXP ' + fmtD(r.exp) : ''}</div>
+                    </div>
+                    <span class="font-bold text-base ${st[2] === '+' ? 'text-[#1F7A5A]' : 'text-[#6D4DF2]'} shrink-0">${st[2]}${esc(r.qty)}</span></div>`;
+            });
+            if (rows.length > histLimit) html += `<button onclick="histLimit+=80;renderHistory()" class="w-full mt-2 py-3 rounded-2xl bg-[#EFEAFF] text-[#6D4DF2] text-sm font-bold">แสดงเพิ่ม (${rows.length - histLimit} รายการ)</button>`;
+            $('historyList').innerHTML = html;
+        }
+
+        // ================= ของรออบ / แจ้งเตือน =================
+        function updateSterileUI() {
+            const container = $('sterileList');
+            const queue = appData.sterileQueue || [];
+            const badge = $('sterileBadge');
+            if (queue.length > 0) { badge.innerText = queue.length; badge.classList.remove('hidden'); }
+            else { badge.classList.add('hidden'); }
+            if (queue.length === 0) {
+                container.innerHTML = `<div class="text-center py-10"><p class="text-[#8A85A8] font-bold">ไม่มีของรออบครับ ♨️</p></div>`;
+                return;
+            }
+            container.innerHTML = queue.map(item => `
+                <div class="bg-[#F3EFFF] p-4 rounded-[1.5rem] border border-[#ECE6FB] space-y-2 text-sm">
+                    <div class="font-bold text-[#2A2550] text-base">${esc(item.name)}</div>
+                    <div class="text-[#6D4DF2] font-bold text-xs bg-white p-2 rounded-xl inline-block border border-[#ECE6FB]">📍 ส่งอบ: ${esc(item.sterileLoc)}</div>
+                    <div class="text-[#8A85A8] text-xs mt-1">คลังต้นทาง: <span class="font-semibold text-[#2A2550]">${esc(item.originalRoom)}</span> | ผู้ส่ง: <span class="font-semibold text-[#2A2550]">${esc(item.operator)}</span> | ส่งเมื่อ ${fmtD(item.sendDate)}</div>
+                    <button data-id="${esc(item.id)}" data-name="${esc(item.name)}" onclick="openReturnModal(this.dataset.id, this.dataset.name)" class="w-full bg-[#A8E8CC] text-[#1C5A43] py-2.5 rounded-xl font-extrabold mt-2">เข้าคลัง ✨</button>
+                </div>`).join('');
+        }
+
+        function checkNotifications() {
+            const groups = buildGroups().sort((a, b) => a.room.localeCompare(b.room, 'th') || a.name.localeCompare(b.name, 'th'));
+            const minExp = ls => ls.reduce((m, l) => expSort(l.exp) < expSort(m.exp) ? l : m, ls[0]);
+            const sum = ls => ls.reduce((a, l) => a + (parseInt(l.qty) || 0), 0);
+            const SECS = [
+                ['⛔ หมดอายุแล้ว', 't-red', groups.filter(g => g.exp), g => { const l = minExp(g.expLots); return `${sum(g.expLots)} ชิ้น · EXP ${fmtD(l.exp)}`; }],
+                ['🚫 ของหมด', 't-red', groups.filter(g => g.out), () => 'เหลือ 0 ชิ้น'],
+                ['⏰ ใกล้หมดอายุ', 't-orange', groups.filter(g => g.soon), g => { const l = minExp(g.soonLots); return `อีก ${l._dl} วัน · ${sum(g.soonLots)} ชิ้น · EXP ${fmtD(l.exp)}`; }],
+                ['⚠️ ใกล้หมด', 't-yellow', groups.filter(g => g.low), g => `เหลือ ${g.totalQty} ชิ้น (ขั้นต่ำ ${g.minQty})`]
+            ];
+            let total = 0, html = '';
+            SECS.forEach(([title, tone, list, txt]) => {
+                if (!list.length) return;
+                total += list.length;
+                html += `<div class="n-sec">${title}<span>${list.length}</span></div>` + list.map(g =>
+                    `<button class="w-full flex items-center gap-3 p-2.5 rounded-2xl hover:bg-[#F7F6FB] active:bg-[#F1EDFF] text-left" data-go="${esc(g.key)}">
+                        <span class="tile ${tone}">${whIcon(g.room)}</span>
+                        <span class="flex-1 min-w-0"><b class="block font-semibold truncate">${esc(g.name)}</b><span class="block text-xs text-[#8A85A8] truncate">${esc(g.room)} · ${txt(g)}</span></span>
+                        <span class="text-[#C9C5DD]">›</span></button>`).join('');
+            });
+            const badge = $('notifBadge');
+            if (total) { badge.innerText = total; badge.classList.remove('hidden'); $('notifContent').innerHTML = html; }
+            else {
+                badge.classList.add('hidden');
+                $('notifContent').innerHTML = '<p class="text-center text-[#8A85A8] py-6 text-sm font-bold">ยอดเยี่ยม! ไม่มีรายการแจ้งเตือน 🎉</p>';
+            }
+        }
+
+        function toggleNotificationModal() { $('notifModal').classList.toggle('hidden'); }
+        $('notifContent').addEventListener('click', e => { const b = e.target.closest('[data-go]'); if (b) { toggleNotificationModal(); goToItem(b.dataset.go); } });
+
+        // ไปที่สินค้าในหน้าคลัง กางล็อตไว้ และเลื่อนไปให้เห็น
+        function goToItem(key) {
+            switchMainTab('inventory');
+            invRoom = 'ALL';
+            $('invSearch').value = '';
+            openKeys.add(key);
+            renderChips();
+            renderInventoryTable();
+            const row = document.getElementById('row-' + encodeURIComponent(key));
+            if (row) { row.scrollIntoView({ block: 'center', behavior: 'smooth' }); row.classList.remove('flash'); void row.offsetWidth; row.classList.add('flash'); }
+        }
+        function toggleSterileModal() { $('sterileModal').classList.toggle('hidden'); }
+
+        function openReturnModal(id, name) {
+            $('returnItemId').value = id;
+            $('returnItemNameTitle').innerText = "รับคืน: " + name;
+            setToday('returnExpDateInput');
+            $('returnOperatorSelect').innerHTML = $('operatorSelect').innerHTML;
+            $('returnOperatorSelect').value = $('operatorSelect').value;
+            $('returnDateModal').classList.remove('hidden');
+        }
+        function closeReturnModal() { $('returnDateModal').classList.add('hidden'); }
+
+        function confirmReturnSterile() {
+            const id = $('returnItemId').value;
+            const newExpiry = $('returnExpDateInput').value;
+            const returnOperator = $('returnOperatorSelect').value;
+            if (!newExpiry) { alert('กรุณาเลือกวันหมดอายุ'); return; }
+            if (!returnOperator) { alert('กรุณาระบุผู้ทำรายการ'); return; }
+            const btn = $('confirmReturnBtn');
+            btn.innerText = "กำลังรับคืน...";
+            btn.disabled = true;
+            const reset = () => { btn.innerText = "เข้าคลัง ✨"; btn.disabled = false; };
+            google.script.run
+                .withFailureHandler(err => { reset(); alert('เกิดข้อผิดพลาด: ' + (err && err.message ? err.message : err)); })
+                .withSuccessHandler(res => {
+                    reset();
+                    if (res && res.success === false) { alert(res.message || 'เกิดข้อผิดพลาด'); return; }
+                    histStale = true;
+                    closeReturnModal();
+                    toggleSterileModal();
+                    if (res && res.data && res.data.success) { saveCache(res.data); applyData(res.data, true); }
+                    else loadData();
+                    toast('รับคืนเข้าคลังแล้ว ✓');
+                })
+                .returnFromSterile(id, newExpiry, returnOperator);
+        }
+
+        // ================= รถ Emergency =================
+        function openEmergencyCheckModal() {
+            $('emergencyCheckOperator').innerHTML = $('operatorSelect').innerHTML;
+            $('emergencyCheckOperator').value = $('operatorSelect').value;
+            const checklistContainer = $('emergencyChecklist');
+            const totals = {};
+            (appData.inventory || []).forEach(item => {
+                if (isEmer(item.room)) totals[item.name] = (totals[item.name] || 0) + (parseInt(item.qty) || 0);
+            });
+            const names = Object.keys(totals);
+            if (names.length === 0) {
+                checklistContainer.innerHTML = '<p class="text-center text-sm text-[#8A85A8] py-4">ไม่มีสินค้าในระบบของคลังนี้</p>';
+            } else {
+                checklistContainer.innerHTML = names.map(name => `
+                    <div class="flex flex-col space-y-2 p-3 bg-white rounded-xl border border-[#ECE6FB] shadow-sm">
+                        <label class="checklist-item flex items-center space-x-3">
+                            <input type="checkbox" class="emer-check-item custom-checkbox w-6 h-6 rounded-md accent-[#7C5CFF]" value="${esc(name)}" checked onchange="this.parentElement.nextElementSibling.classList.toggle('hidden', this.checked)">
+                            <div class="flex-1 font-bold text-[#2A2550]">
+                                <span>${esc(name)}</span>
+                                <span class="text-xs font-medium ml-1 text-[#8A85A8]">(ในระบบมี ${totals[name]} ชิ้น)</span>
+                            </div>
+                        </label>
+                        <div class="hidden pl-9 pr-2 pb-1">
+                            <input type="number" min="1" class="w-full input-pastel p-2.5 text-sm font-bold text-red-500 placeholder-red-300" placeholder="ระบุจำนวนที่ขาดหายไป...">
+                        </div>
+                    </div>`).join('');
+            }
+            $('emergencyCheckModal').classList.remove('hidden');
+        }
+        function closeEmergencyModal() { $('emergencyCheckModal').classList.add('hidden'); }
+
+        function confirmEmergencyCheck() {
+            const operator = $('emergencyCheckOperator').value;
+            if (!operator) { alert("กรุณาเลือกชื่อผู้ตรวจสอบ"); return; }
+            const checkboxes = document.querySelectorAll('.emer-check-item');
+            if (checkboxes.length === 0) { alert("ไม่มีรายการให้ตรวจเช็ค"); return; }
+            let checkedCount = 0;
+            const missingDetails = [];
+            checkboxes.forEach(cb => {
+                if (cb.checked) checkedCount++;
+                else {
+                    const mQty = cb.parentElement.nextElementSibling.querySelector('input').value || "ไม่ระบุจำนวน";
+                    missingDetails.push(`- ${cb.value} (ขาด ${mQty} ชิ้น)`);
+                }
+            });
+            const resultText = `ครบ: ${checkedCount > 0 ? checkedCount + ' รายการ' : 'ไม่มี'}\nขาด:\n${missingDetails.length > 0 ? missingDetails.join('\n') : 'ไม่มี'}`;
+            const btn = $('confirmEmergencyBtn');
+            btn.innerText = "กำลังบันทึก...";
+            btn.disabled = true;
+            google.script.run
+                .withFailureHandler(err => { btn.innerText = "บันทึก 📝"; btn.disabled = false; alert('เกิดข้อผิดพลาด: ' + (err && err.message ? err.message : err)); })
+                .withSuccessHandler(res => {
+                    btn.innerText = "บันทึก 📝";
+                    btn.disabled = false;
+                    if (res && res.success === false) { alert(res.message); return; }
+                    closeEmergencyModal();
+                    toast(res.message || 'บันทึกแล้ว ✓');
+                })
+                .saveEmergencyCheck(operator, resultText);
+        }
+
+        function printEmergencyReport() {
+            const year = prompt("กรุณาระบุปี ค.ศ. ที่ต้องการพิมพ์รายงาน (เช่น " + new Date().getFullYear() + ")", new Date().getFullYear());
+            if (!year) return;
+            // เปิดหน้าต่างไว้ก่อน (ถ้าเปิดหลังโหลดเสร็จ มือถือบางรุ่นจะบล็อกป๊อปอัป)
+            const printWindow = window.open('', '_blank');
+            $('statusText').innerText = "กำลังเตรียมรายงาน...";
+            google.script.run.withSuccessHandler(res => {
+                $('statusText').innerText = "✅ พร้อมใช้งาน";
+                if (!res.success) { if (printWindow) printWindow.close(); alert("Error: " + res.error); return; }
+                if (res.logs.length === 0) { if (printWindow) printWindow.close(); alert("ไม่มีข้อมูลการตรวจเช็คในปี " + year); return; }
+                const rows = res.logs.map(log => `
+                        <tr>
+                            <td>${esc(log.date)}</td>
+                            <td>${esc(log.operator)}</td>
+                            <td class="${log.status.includes('ครบ') ? 'status-pass' : 'status-fail'}">${esc(log.status)}</td>
+                            <td>${esc(log.details).replace(/\n/g, '<br>')}</td>
+                        </tr>`).join('');
+                const html = `<!DOCTYPE html>
+                <html lang="th"><head><meta charset="UTF-8">
+                    <title>รายงานการตรวจเช็คสต๊อกรถ Emergency ปี ${esc(year)}</title>
+                    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap" rel="stylesheet">
+                    <style>
+                        body { font-family: 'Sarabun', sans-serif; padding: 30px; color: #333; }
+                        h2 { text-align: center; color: #6D4DF2; margin-bottom: 20px; }
+                        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+                        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; font-size: 14px; vertical-align: top; }
+                        th { background-color: #F3EFFF; color: #2A2550; }
+                        .status-pass { color: #16a34a; font-weight: bold; }
+                        .status-fail { color: #ef4444; font-weight: bold; }
+                        .print-btn { display: block; width: 100px; margin: 0 auto 20px auto; padding: 10px; background: #7C5CFF; color: #fff; text-align: center; border-radius: 99px; cursor: pointer; border: none; font-family: inherit; font-size: 16px; }
+                        @media print { .print-btn { display: none; } body { padding: 0; } }
+                    </style>
+                </head><body>
+                    <button class="print-btn" onclick="window.print()">🖨️ พิมพ์</button>
+                    <h2>รายงานการตรวจเช็ครถ Emergency ประจำปี ${esc(year)}</h2>
+                    <table><thead><tr><th width="15%">วันที่ตรวจ</th><th width="15%">ผู้ตรวจสอบ</th><th width="15%">สถานะ</th><th width="55%">รายละเอียด (เช็คลิสต์)</th></tr></thead>
+                    <tbody>${rows}</tbody></table>
+                </body></html>`;
+                const w = printWindow || window.open('', '_blank');
+                if (!w) { alert('เบราว์เซอร์บล็อกหน้าต่างใหม่ กรุณาอนุญาตป๊อปอัปแล้วลองอีกครั้ง'); return; }
+                w.document.write(html);
+                w.document.close();
+            }).getEmergencyLogs(String(year));
+        }
+    </script>
+</body>
+</html>
