@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ระบบใบลา โรงพยาบาลระยอง</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700&family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#F5F4FA;--card:#fff;--tx:#2A2550;--mu:#8A85A8;--pr:#7C5CFF;--pr2:#F1EDFF;--bd:#EEECF5;--wk:transparent;--red:#FF5C7A;--g:linear-gradient(100deg,#7C5CFF 0%,#B57BFF 52%,#FF9EB0 100%);--sh:0 1px 2px rgba(42,37,80,.04),0 12px 32px -22px rgba(80,60,160,.3);box-sizing:border-box}
+/* ธีมพาสเทลสว่างเสมอ (ไม่เปลี่ยนเป็นโหมดมืดตามเครื่อง) · มินิมอล: พื้นเรียบ การ์ดขาว เส้นน้อย ช่องว่างเยอะ */
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+button,.day,select,input{touch-action:manipulation}
+body{margin:0;background:#F7F6FB;color:var(--tx);font-family:'Prompt','Sarabun',system-ui,sans-serif;font-size:14px}
+body::before{content:'';position:fixed;inset:0 0 auto 0;height:320px;z-index:-1;pointer-events:none;background:radial-gradient(60% 100% at 0% 0%,#EEE8FF 0%,transparent 70%),radial-gradient(50% 90% at 100% 0%,#FFEDF2 0%,transparent 70%)}
+header{background:rgba(247,246,251,.94);color:var(--tx);padding:14px 16px 10px;padding-top:calc(14px + env(safe-area-inset-top,0px));display:flex;align-items:center;justify-content:space-between;gap:10px;position:sticky;top:0;z-index:10}
+header h1{margin:0;font-size:17px;font-weight:600;background:var(--g);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}header p{margin:1px 0 0;color:#B0ACC8;font-size:11.5px}
+.emo{-webkit-text-fill-color:initial}
+.hb,.gear{background:#fff;border:0;color:var(--pr);font-size:18px;width:40px;height:40px;border-radius:14px;cursor:pointer;flex:none;box-shadow:0 1px 2px rgba(42,37,80,.06),0 6px 16px -10px rgba(80,60,160,.4)}
+.gear{font-size:17px}
+.top-actions{display:flex;align-items:center;gap:8px;flex:none}
+.ubadge{background:var(--pr2);border:0;color:var(--pr);padding:9px 14px;border-radius:99px;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
+.ubadge.primary{background:var(--g);color:#fff;box-shadow:0 8px 18px -10px rgba(124,92,255,.7)}
+/* เมนูตั้งค่า (ปุ่มเฟืองมุมขวาบน) */
+.pop-bg{display:none;position:fixed;inset:0;z-index:30}
+.pop{display:none;position:fixed;top:calc(62px + env(safe-area-inset-top,0px));right:12px;width:min(270px,calc(100% - 24px));background:#fff;border-radius:20px;box-shadow:0 20px 44px -16px rgba(42,37,80,.35);padding:8px;z-index:31;animation:pp .15s ease-out}
+.pop.on,.pop-bg.on{display:block}
+@keyframes pp{from{opacity:0;transform:translateY(-6px)}}
+.pop-hd{padding:10px 12px 8px;font-size:12px;color:var(--mu);border-bottom:1px solid var(--bd);margin-bottom:4px}
+.pop-hd b{display:block;color:var(--tx);font-size:14px;font-weight:600}
+.pop button{display:flex;align-items:center;gap:10px;width:100%;border:0;background:none;padding:11px 12px;border-radius:14px;font:inherit;font-size:14px;color:var(--tx);cursor:pointer;text-align:left}
+.pop button:hover{background:#F7F6FB}
+.pop button.out{color:var(--red)}
+.back{display:inline-flex;align-items:center;gap:4px;border:0;background:none;color:var(--pr);font:inherit;font-size:14px;font-weight:500;padding:6px 4px 12px;cursor:pointer}
+main{max-width:1000px;margin:0 auto;padding:6px 14px 60px}
+.card{background:#fff;border-radius:24px;box-shadow:var(--sh);padding:18px;margin-bottom:14px}
+.v{display:none}.v.on{display:block}
+label{display:block;font-size:12.5px;font-weight:500;color:#9A96B5;margin:12px 0 5px 4px}
+input,select,textarea{width:100%;font-size:16px;padding:11px 14px;border:1.5px solid transparent;border-radius:14px;background:var(--bg);color:var(--tx);font-family:inherit;outline:none;transition:border-color .15s,box-shadow .15s}
+input:focus,select:focus,textarea:focus{border-color:#B9A6FF;background:#fff;box-shadow:0 0 0 4px rgba(124,92,255,.1)}
+input:disabled,select:disabled{color:var(--tx);opacity:.75}
+input[type=checkbox]{width:auto;margin-right:6px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:0 10px}
+@media(max-width:520px){header h1{font-size:16px}header p{font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}}
+.btn{background:var(--g);color:#fff;border:0;border-radius:99px;padding:11px 18px;font:inherit;font-size:14px;font-weight:600;cursor:pointer;margin:8px 6px 0 0;box-shadow:0 8px 18px -10px rgba(124,92,255,.7)}
+.btn:active{transform:scale(.97)}
+.btn:disabled{opacity:.6;cursor:wait}
+.btn.s{background:var(--pr2);color:var(--pr);box-shadow:none}.btn.d{background:#FFEEF1;color:var(--red);box-shadow:none}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+.cal .h{text-align:center;color:#B0ACC8;font-size:11.5px;font-weight:500;padding:4px 0 8px}
+.day{min-height:58px;border-radius:14px;padding:5px 1px;text-align:center;cursor:pointer;background:transparent;display:flex;flex-direction:column;align-items:center;transition:background .12s}
+.day:hover{background:#F7F6FB}
+.day.we small{color:#B0ACC8}.day.sel{background:var(--pr2)}
+.day small{font-size:14px;color:var(--tx);margin-bottom:3px;display:inline-block;width:26px;height:26px;line-height:26px}
+.day.td small{background:var(--g);color:#fff;border-radius:50%;font-weight:600}
+.badges{display:flex;flex-direction:column;gap:2px;width:100%;padding:0 2px}
+.cbadge{display:block;border-radius:6px;font-size:10.5px;font-weight:600;line-height:1.4;padding:0 3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cbadge.rad{background:#EEE9FF;color:#6D4DF2}.cbadge.ast{background:#FFEDE2;color:#C2571B}.cbadge.oth{background:#E2F6EE;color:#1F7A5A}
+.legend{display:flex;gap:14px;align-items:center;font-size:12px;color:var(--mu);margin:2px 0 10px;flex-wrap:wrap}
+.legend span{display:inline-flex;align-items:center;gap:5px}.dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+.row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:12px 0;border-bottom:1px solid #F1EFF7;flex-wrap:wrap}
+.row:last-child{border-bottom:0}
+.tag{font-size:11.5px;font-weight:500;border-radius:99px;padding:2px 10px;margin-left:6px}
+.t-vac{background:#FFF1E2;color:#C76A00}.t-sick{background:#FFE9EE;color:#D92D55}.t-pers{background:#E6EFFF;color:#2F6FE0}.t-mat{background:#F3E8FF;color:#9333E0}.t-wife{background:#E2F6EE;color:#0A8F75}.t-cancel{background:#F1EFF7;color:var(--mu)}
+.t-abroad{background:#E2F3FF;color:#0082C8}.t-ord{background:#FFF6DA;color:#A07000}
+.big{font-size:20px;font-weight:600;color:var(--pr)}
+.bar{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}.bar .btn{flex:1;margin:0;min-width:120px}
+details{margin-top:12px;font-size:14px}summary{cursor:pointer;color:var(--pr);font-weight:500;list-style:none}summary::-webkit-details-marker{display:none}
+#sw{color:#C76A00;font-size:13px;margin-top:8px}
+/* ข้อมูลที่ระบบเติมให้แล้ว: หุบไว้เป็นบรรทัดเดียว แตะเพื่อแก้ */
+details.fold{background:var(--bg);border-radius:16px;padding:0 14px;margin-top:14px}
+details.fold>summary{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 0;color:var(--tx);font-weight:500}
+details.fold>summary small{display:block;color:var(--mu);font-size:12px;font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:62vw}
+details.fold>summary i{font-style:normal;color:var(--pr);font-size:12px;flex:none}
+details.fold>summary i::after{content:'แก้ไข ▾'}details.fold[open]>summary i::after{content:'ซ่อน ▴'}
+details.fold[open]{padding-bottom:14px}
+details.fold input,details.fold select{background:#fff}
+.hl{font-style:normal;font-size:11.5px;font-weight:600;color:#C2571B;background:#FFE7D4;border-radius:99px;padding:2px 9px;margin-left:4px;white-space:nowrap}
+.exbox{margin-top:14px;padding:12px 14px;border-radius:18px;background:var(--bg)}
+.exbox>b{font-size:14px;font-weight:600;color:var(--pr)}
+.exbox input,.exbox select{background:#fff}
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(42,37,80,.45);z-index:35;align-items:flex-start;justify-content:center;overflow-y:auto;padding:16px 10px 40px}
+.modal-box{width:min(640px,100%);margin:auto;position:relative}
+.pdf-box{margin-top:12px;border:1.5px dashed var(--bd);border-radius:14px;overflow:hidden;background:var(--bg)}
+.pdf-box iframe{width:100%;height:520px;border:0;display:block}
+.hidden{display:none!important}
+#toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:#2A2550;color:#fff;padding:10px 18px;border-radius:99px;font-size:14px;z-index:60;opacity:0;pointer-events:none;transition:opacity .2s;max-width:90%;text-align:center}
+#toast.show{opacity:1}
+</style></head><body>
+<?!= include('Nav', {page: page, menu: menu}) ?>
+
+<header>
+  <div style="display:flex;align-items:center;gap:10px;min-width:0">
+    <button class="hb" id="hb" aria-label="เมนู">☰</button>
+    <div style="min-width:0"><h1><span class="emo">🏥</span> ระบบใบลา</h1><p>โรงพยาบาลระยอง · กลุ่มงานรังสีวิทยา</p></div>
+  </div>
+  <div class="top-actions">
+    <button class="ubadge primary" id="topLeaveBtn">📝 ทำใบลา</button>
+    <button class="gear" id="gearBtn" aria-label="ตั้งค่า">⚙️</button>
+  </div>
+</header>
+<div class="pop-bg" id="popBg"></div>
+<div class="pop" id="pop">
+  <div class="pop-hd"><b id="us">ยังไม่ได้เข้าสู่ระบบ</b><span id="usSub">ดูปฏิทินได้ · เข้าสู่ระบบเพื่อบันทึกใบลา</span></div>
+  <button data-v="ppl" id="nav-ppl">👤 ข้อมูลส่วนตัว</button>
+  <button data-v="set" id="nav-set" class="hidden">📄 ตั้งค่าใบลา & ไฟล์ PDF</button>
+  <button id="topLogin">🔐 เข้าสู่ระบบ</button>
+</div>
+
+
+<div id="lg" style="display:none;position:fixed;inset:0;background:#0007;z-index:45;align-items:center;justify-content:center">
+  <div class="card" style="width:min(340px,92%)">
+    <b>🔐 เข้าสู่ระบบ</b>
+    <label>ID พนักงาน</label><input id="ln" placeholder="รหัสพนักงานของคุณ" autocomplete="username">
+    <label>รหัสผ่าน (PIN)</label><input id="lp" type="password" autocomplete="current-password">
+    <div style="margin-top:10px"><button class="btn" id="lgo">เข้าสู่ระบบ</button><button class="btn s" id="lcn">ยกเลิก</button></div>
+  </div>
+</div>
+
+<div id="delChoiceModal" style="display:none;position:fixed;inset:0;background:#0008;z-index:45;align-items:center;justify-content:center;padding:14px">
+  <div class="card" style="width:min(420px,100%)">
+    <b style="font-size:17px">⚠️ จัดการยกเลิก / ลบใบลา</b>
+    <p id="delChoiceDesc" style="font-size:14px;color:var(--mu);margin:8px 0 14px;line-height:1.5"></p>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <button class="btn" style="margin:0;width:100%" id="btnMakeCancelForm">📄 ต้องการทำ "ใบยกเลิกวันลา" (พร้อมพิมพ์ PDF)</button>
+      <button class="btn d" style="margin:0;width:100%" id="btnHardDelete">🗑️ ลบข้อมูลใบลานี้ทิ้งถาวร</button>
+      <button class="btn s" style="margin:0;width:100%" onclick="$('delChoiceModal').style.display='none'">ปิดหน้าต่าง</button>
+    </div>
+  </div>
+</div>
+
+<div id="leaveModal" class="modal-bg">
+  <div class="card modal-box" id="formCard">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding-bottom:4px">
+      <b style="font-size:16px;font-weight:600" id="formModalTitle">📝 กรอกข้อมูลใบลา</b>
+      <div style="display:flex;gap:6px">
+        <button class="btn s" style="margin:0;padding:6px 10px;font-size:12px" id="clrForm">ล้างฟอร์ม</button>
+        <button class="btn d" style="margin:0;padding:6px 12px;font-size:13px" id="closeLeaveModal">✕ ปิด</button>
+      </div>
+    </div>
+    <label>ประเภทใบลา</label>
+    <select id="ty"><option value="vac">ลาพักผ่อน</option><option value="sick">ลาป่วย</option><option value="pers">ลากิจส่วนตัว</option><option value="mat">ลาคลอดบุตร</option><option value="wife">ลาไปช่วยเหลือภรรยาที่คลอดบุตร</option><option value="abroad">ลาไปต่างประเทศ</option><option value="ord">ลาอุปสมบท</option><option value="cancel">ยกเลิกวันลา</option></select>
+    <div id="ct" style="display:none"><label>ยกเลิกการลาประเภท</label><select id="cty"><option value="vac">ลาพักผ่อน</option><option value="sick">ลาป่วย</option><option value="pers">ลากิจส่วนตัว</option><option value="mat">ลาคลอดบุตร</option><option value="wife">ลาช่วยภรรยาคลอด</option></select></div>
+    <label>ชื่อผู้ลา</label><input id="nm2" list="pl" placeholder="เลือกหรือพิมพ์ชื่อ-สกุล"><datalist id="pl"></datalist>
+    <div id="pi" style="font-size:12px;color:var(--mu);margin-top:2px"></div>
+    <div class="g2"><div><label>ตั้งแต่วันที่</label><input type="date" id="s"></div><div><label>ถึงวันที่</label><input type="date" id="e"></div></div>
+    <div class="g2"><div><label id="dyLbl">จำนวนวันทำการ</label><input type="number" id="dy" step="0.5"></div><div><label>ผู้ปฏิบัติหน้าที่แทน</label><input id="sb"></div></div>
+    <label>เหตุผล / เนื่องจาก</label><input id="rs">
+    <details id="pdet" class="fold"><summary><span style="min-width:0">ข้อมูลผู้ลา · ช่องทางติดต่อ<small id="pdetSum">ระบบเติมให้จากข้อมูลบุคลากร</small></span><i></i></summary>
+      <div class="g2">
+        <div><label>ตำแหน่ง</label><input id="f_pos"></div>
+        <div><label>กลุ่มงาน/ฝ่าย</label><input id="f_dept"></div>
+        <div><label>ประเภทบุคลากร</label><select id="f_type"><option value="">— เลือก —</option><option>ข้าราชการ</option><option>พนักงานราชการ</option><option>ลูกจ้างประจำ</option><option>พนักงานกระทรวงสาธารณสุข</option><option>ลูกจ้างชั่วคราว</option></select></div>
+        <div><label>วันลาพักผ่อนสะสม</label><input id="f_carry" type="number" step="0.5"></div>
+      </div>
+      <div class="g2">
+        <div><label>ติดต่อระหว่างลาได้ที่</label><input id="ctc"></div>
+        <div><label>วันที่เขียนใบลา</label><input type="date" id="dt"></div>
+      </div>
+      <div style="font-size:12px;color:var(--mu);margin-top:8px">ถ้าเลือกชื่อที่มีในระบบ ข้อมูลจะเติมให้เอง ถ้าเป็นคนที่ยังไม่อยู่ในระบบ กรอกช่องเหล่านี้เองได้เลย</div>
+    </details>
+
+    <div id="exAbroad" class="exbox" style="display:none">
+      <b>✈️ ข้อมูลการเดินทางไปต่างประเทศ</b>
+      <div class="g2">
+        <div><label>เพื่อ (วัตถุประสงค์)</label><input id="x_purpose" placeholder="เช่น ท่องเที่ยว"></div>
+        <div><label>ณ (ประเทศ / สถานที่)</label><input id="x_place" placeholder="เช่น ประเทศญี่ปุ่น"></div>
+        <div><label>เดินทางตั้งแต่วันที่</label><input type="date" id="x_ts"></div>
+        <div><label>ถึงวันที่</label><input type="date" id="x_te"></div>
+        <div><label>รวมกี่วัน (นับทุกวัน)</label><input type="number" id="x_td"></div>
+        <div><label>ขอลาเป็น</label><select id="x_lk"><option value="vac">ลาพักผ่อน</option><option value="pers">ลากิจ</option></select></div>
+      </div>
+      <div style="font-size:12px;color:var(--mu);margin-top:6px">วันที่ลา / จำนวนวันทำการ ใช้ค่าจากช่อง "ตั้งแต่วันที่ – ถึงวันที่" ด้านบน</div>
+    </div>
+
+    <div id="exOrd" class="exbox" style="display:none">
+      <b>🙏 ข้อมูลการลาอุปสมบท</b>
+      <div class="g2">
+        <div><label>เคยอุปสมบทหรือไม่</label><select id="x_first"><option value="new">ยังไม่เคย</option><option value="old">เคย</option></select></div>
+        <div><label>วันเกิด</label><input type="date" id="x_bd"></div>
+        <div><label>วันที่เข้ารับราชการ</label><input type="date" id="x_sd"></div>
+        <div><label>กำหนดวันอุปสมบท</label><input type="date" id="x_rdate"></div>
+        <div><label>อุปสมบท ณ วัด</label><input id="x_wat"></div>
+        <div><label>วัดนั้นตั้งอยู่ ณ</label><input id="x_watAt" placeholder="ตำบล อำเภอ จังหวัด"></div>
+        <div><label>จำพรรษาอยู่ ณ วัด</label><input id="x_rwat"></div>
+        <div><label>วัดจำพรรษาตั้งอยู่ ณ</label><input id="x_rwatAt" placeholder="ตำบล อำเภอ จังหวัด"></div>
+      </div>
+      <div style="font-size:12px;color:var(--mu);margin-top:6px">จำนวนวันลาอุปสมบทนับรวมทุกวัน (รวมเสาร์-อาทิตย์)</div>
+    </div>
+
+    <div id="guestNote" class="exbox hidden" style="font-size:13px;color:var(--mu)">🖨️ โหมดไม่เข้าสู่ระบบ: พิมพ์หรือดาวน์โหลด PDF ได้เลย (ชื่อใครก็ได้ ไม่ต้องมีในระบบ) แต่ระบบจะไม่บันทึกใบลานี้ลงปฏิทิน (ถ้าต้องการบันทึก ให้เข้าสู่ระบบก่อน)</div>
+    <div id="sw"></div>
+    <details class="fold"><summary><span>ผู้ลงนาม <em class="hl">เฉพาะกรณีหัวหน้าลา</em><small>ปกติใช้หัวหน้าตามที่ตั้งค่าไว้ ไม่ต้องแก้</small></span><i></i></summary><div class="g2"><div><label>ผู้ตรวจสอบ (ชื่อ)</label><input id="o1"></div><div><label>ตำแหน่ง</label><input id="o2"></div><div><label>ผู้บังคับบัญชา (ชื่อ)</label><input id="o3"></div><div><label>ตำแหน่ง</label><input id="o4"></div></div></details>
+    <div class="bar"><button class="btn" id="sv">💾 บันทึกใบลา</button><button class="btn s" id="btnPrintPdf">🖨️ พิมพ์ใบลา / PDF</button><button class="btn s" id="btnDownloadPdf">⬇️ ดาวน์โหลด PDF</button></div>
+    <div id="pdfPreviewWrap" class="pdf-box hidden"><div style="padding:8px 12px;background:var(--pr2);color:var(--pr);font-size:13px;font-weight:600;display:flex;justify-content:space-between;align-items:center"><span>📄 ตัวอย่าง PDF</span><button class="btn s" style="margin:0;padding:4px 10px;font-size:12px" onclick="$('pdfPreviewWrap').classList.add('hidden')">ปิด</button></div><iframe id="pdfFrame"></iframe></div>
+  </div>
+</div>
+
+<main>
+<section class="v on" id="v-home">
+  <div id="statusBanner" style="text-align:center;font-size:13px;color:var(--pr);padding:4px 0 8px">⏳ กำลังซิงค์ข้อมูลจาก Google Sheets...</div>
+  <div class="card">
+    <div class="row" style="border:0;padding:0 0 8px"><button class="btn s" style="margin:0" id="pm">◀</button><b id="mt" style="font-size:17px"></b><button class="btn s" style="margin:0" id="nm">▶</button></div>
+    <div class="legend"><span><i class="dot" style="background:#8B6CFF"></i> นักรังสีฯ</span><span><i class="dot" style="background:#FF9A76"></i> ผู้ช่วยฯ</span></div>
+    <div class="cal" id="cal"></div>
+  </div>
+  <div class="card" id="dl"></div>
+</section>
+
+<section class="v" id="v-ppl">
+  <button class="back" data-home>‹ กลับไปปฏิทิน</button>
+  <div class="card">
+    <b id="pplTitle">👤 ข้อมูลบุคลากร</b>
+    <div class="g2">
+      <div><label>รหัสพนักงาน (ID)</label><input id="pid"></div><div><label>ชื่อ-สกุล</label><input id="pn"></div>
+      <div><label>ตำแหน่ง (เช่น นักรังสีการแพทย์ / ผู้ช่วยพยาบาล)</label><input id="pp"></div><div><label>กลุ่มงาน/ฝ่าย</label><input id="pd" value="กลุ่มงานรังสีวิทยา"></div>
+      <div><label>ประเภทบุคลากร</label><select id="pt"><option>ข้าราชการ</option><option>พนักงานราชการ</option><option>ลูกจ้างประจำ</option><option>พนักงานกระทรวงสาธารณสุข</option><option>ลูกจ้างชั่วคราว</option></select></div>
+      <div><label>วันลาพักผ่อนสะสม</label><input id="pc" type="number" value="0"></div><div><label>เบอร์ติดต่อ / ที่อยู่ระหว่างลา</label><input id="pk"></div>
+    </div>
+    <label>รหัสผ่าน PIN (4 ตัวขึ้นไป)</label><input id="pw" type="password" inputmode="numeric">
+    <button class="btn" id="ps2">บันทึกข้อมูล</button><button class="btn s" id="pcl">ล้างฟอร์ม</button>
+  </div>
+  <div class="card" id="plist"></div>
+</section>
+
+<section class="v" id="v-set">
+  <button class="back" data-home>‹ กลับไปปฏิทิน</button>
+  <div class="card">
+    <b>📄 ตั้งค่าไฟล์ PDF แบบฟอร์มใบลาต้นฉบับ</b>
+    <div class="g2">
+      <div><label>1. ใบลาพักผ่อน (Drive File ID)</label><input id="pdf_vac"><input type="file" accept="application/pdf" onchange="uploadPdf('vac',this)" style="margin-top:4px;font-size:12px"></div>
+      <div><label>2. ใบลาป่วย/กิจ/คลอด/ช่วยภรรยาคลอด (Drive File ID)</label><input id="pdf_sick"><input type="file" accept="application/pdf" onchange="uploadPdf('sick',this)" style="margin-top:4px;font-size:12px"></div>
+      <div><label>3. ใบลาไปต่างประเทศ (Drive File ID)</label><input id="pdf_abroad"><input type="file" accept="application/pdf" onchange="uploadPdf('abroad',this)" style="margin-top:4px;font-size:12px"></div>
+      <div><label>4. ใบลาอุปสมบท (Drive File ID)</label><input id="pdf_ord"><input type="file" accept="application/pdf" onchange="uploadPdf('ord',this)" style="margin-top:4px;font-size:12px"></div>
+      <div><label>5. ใบยกเลิกวันลา (Drive File ID)</label><input id="pdf_cancel"><input type="file" accept="application/pdf" onchange="uploadPdf('cancel',this)" style="margin-top:4px;font-size:12px"></div>
+      <div><label>เลื่อนตำแหน่งข้อความทั้งหมด (X, Y)</label><div class="g2"><input id="off_x" type="number" step="0.5" value="0"><input id="off_y" type="number" step="0.5" value="0"></div></div>
+    </div>
+    <label style="margin-top:12px"><input type="checkbox" id="pdf_sn" checked>พิมพ์ชื่อผู้ลงนาม (หัวหน้างาน/หัวหน้ากลุ่มงาน) ลงบนบรรทัด (ลงชื่อ) — ปิดไว้ถ้าต้องการเซ็นด้วยมือ</label>
+  </div>
+  <div class="card">
+    <b>หัวหน้างาน / หัวหน้ากลุ่มงานรังสีวิทยา</b>
+    <div class="g2">
+      <div><label>ชื่อหัวหน้างาน</label><input id="c1"></div><div><label>ตำแหน่ง</label><input id="c2"></div>
+      <div><label>ชื่อหัวหน้ากลุ่มงาน</label><input id="c3"></div><div><label>ตำแหน่ง</label><input id="c4"></div>
+      <div><label>ผู้รักษาการแทนหัวหน้างาน</label><input id="c5"></div><div><label>ตำแหน่ง</label><input id="c6"></div>
+      <div><label>ผู้รักษาการแทนหัวหน้ากลุ่มงาน</label><input id="c7"></div><div><label>ตำแหน่ง</label><input id="c8"></div>
+    </div>
+    <textarea id="hol" style="display:none"></textarea>
+    <button class="btn" id="cs">💾 บันทึกการตั้งค่าทั้งหมด</button>
+  </div>
+</section>
+</main>
+<div id="toast"></div>
+
+<script>
+const $=i=>document.getElementById(i);
+const TY={vac:'ลาพักผ่อน',sick:'ลาป่วย',pers:'ลากิจส่วนตัว',mat:'ลาคลอดบุตร',wife:'ลาไปช่วยเหลือภรรยาที่คลอดบุตร',abroad:'ลาไปต่างประเทศ',ord:'ลาอุปสมบท',cancel:'ยกเลิกวันลา'};
+const TS={vac:'พักผ่อน',sick:'ป่วย',pers:'กิจส่วนตัว',mat:'คลอดบุตร',wife:'ช่วยภรรยาคลอด'};
+const MN=['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+let U=null,editingLeaveId=null,targetDelLeave=null,nxt='',pend=0,lastSync=0;
+const A=()=>U?{id:U.id,p:U.p}:{};
+const DEF_PDF={vac:'',sick:'',cancel:'',abroad:'',ord:'',ox:0,oy:0,sn:1};
+let S={people:[],leaves:[],cfg:{c:['','','','','','','',''],hol:'',pdf:Object.assign({},DEF_PDF)}};
+
+let tt;const toast=m=>{const t=$('toast');t.textContent=m;t.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('show'),2200)};
+function api(fn,...a){return new Promise((ok,no)=>{if(typeof google==='undefined'||!google.script){no(new Error('กรุณาเปิดผ่านลิงก์ Web App ของ Google Apps Script'));return}google.script.run.withSuccessHandler(ok).withFailureHandler(e=>{no(e)})[fn](...a)})}
+const iso=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+function normDate(v){if(!v)return'';let s=String(v).trim();const m=s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);if(m){let y=+m[1];if(y>2400)y-=543;return y+'-'+String(m[2]).padStart(2,'0')+'-'+String(m[3]).padStart(2,'0')}const m2=s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);if(m2){let y=+m2[3];if(y>2400)y-=543;return y+'-'+String(m2[2]).padStart(2,'0')+'-'+String(m2[1]).padStart(2,'0')}const d=new Date(s);if(!isNaN(d.getTime())){let y=d.getFullYear();if(y>2400)y-=543;return iso(new Date(y,d.getMonth(),d.getDate()))}return s}
+const pd=s=>{const[a,b,c]=normDate(s).split('-').map(Number);return new Date(a,b-1,c)};
+const th=s=>{const k=normDate(s);return k&&k.length>=10?`${+k.slice(8,10)} ${MN[+k.slice(5,7)-1]} ${+k.slice(0,4)+543}`:''};
+const FIX=['01-01','04-06','04-13','04-14','04-15','05-01','05-04','06-03','07-28','08-12','10-13','10-23','12-05','12-10','12-31'];
+const hols=()=>{const t=(S.cfg.hol||'').split(/\s+/).filter(Boolean);return{has:k=>!t.includes('-'+k)&&(t.includes(k)||FIX.includes(k.slice(5)))}};
+const isWork=(d,h)=>d.getDay()%6!==0&&!h.has(iso(d));
+function wd(a,b){if(!a||!b||b<a)return 0;const h=hols();let n=0;for(let d=pd(a);d<=pd(b);d.setDate(d.getDate()+1))if(isWork(d,h))n++;return n}
+function calDays(a,b){if(!a||!b||b<a)return 0;return Math.round((pd(b)-pd(a))/864e5)+1}
+const esc=t=>String(t==null?'':t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const person=n=>S.people.find(p=>String(p.name).trim()===String(n).trim());
+const normalizeLeaves=arr=>(arr||[]).map(l=>Object.assign({},l,{s:normDate(l.s),e:normDate(l.e),dt:normDate(l.dt),cancelled:l.cancelled===true||String(l.cancelled).toUpperCase()==='TRUE'}));
+function roleGroup(name){const p=person(name),pos=(p&&p.pos)?String(p.pos):'';if(pos.includes('ผู้ช่วย'))return'ast';if(pos.includes('รังสี'))return'rad';return'oth'}
+const parseEx=s=>{try{return JSON.parse(s||'{}')||{}}catch(e){return{}}};
+// ลาไปต่างประเทศแบบลาพักผ่อน นับรวมเป็นลาพักผ่อนในสถิติ
+const effType=l=>l.type==='abroad'?(parseEx(l.ex).lk||'vac'):l.type;
+
+// ซิงค์ข้อมูลเบื้องหลัง (ไม่รบกวนหน้าจอ และไม่ดึงซ้ำถี่เกินไป)
+function sync(force){
+  if(pend>0||(!force&&Date.now()-lastSync<60000))return;
+  api('getData').then(d=>{if(pend>0)return;const n=JSON.parse(d);S.leaves=normalizeLeaves(n.leaves);S.people=n.people;lastSync=Date.now();cal();plist()}).catch(()=>{})
+}
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)sync()});
+
+const pop=o=>{$('pop').classList.toggle('on',!!o);$('popBg').classList.toggle('on',!!o)};
+$('gearBtn').onclick=()=>pop(!$('pop').classList.contains('on'));$('popBg').onclick=()=>pop(0);
+document.querySelectorAll('[data-home]').forEach(b=>b.onclick=()=>switchView('home'));
+function switchView(v){pop(0);document.querySelectorAll('.v').forEach(el=>el.classList.toggle('on',el.id==='v-'+v));if(v==='home'){cal();sync()}tg(0);scrollTo(0,0)}
+document.querySelectorAll('#pop button[data-v]').forEach(b=>b.onclick=()=>{pop(0);const v=b.dataset.v;if(v==='ppl'&&!U){tg(0);return askLogin('ppl')}if(v==='set'&&(!U||!U.admin)){tg(0);return askLogin('set')}switchView(v)});
+// เมนูขีด 3 ขีด = เมนูรวมของทุกระบบ (อยู่ในไฟล์ Nav.html)
+const tg=o=>{if(window.hxOpen)o?hxOpen():hxClose()};$('hb').onclick=()=>tg(1);
+
+// ข้อมูลเพิ่มเติมของใบลาต่างประเทศ / อุปสมบท (เก็บในคอลัมน์ ex ของชีต Leaves)
+const EX_ABROAD=['purpose','place','ts','te','td','lk'],EX_ORD=['first','bd','sd','rdate','wat','watAt','rwat','rwatAt'];
+function getEx(t){const keys=t==='abroad'?EX_ABROAD:(t==='ord'?EX_ORD:[]),o={};keys.forEach(k=>{o[k]=$('x_'+k).value});return o}
+function setEx(o){o=o||{};[...EX_ABROAD,...EX_ORD].forEach(k=>{const el=$('x_'+k);el.value=o[k]!=null?o[k]:(k==='first'?'new':(k==='lk'?'vac':''))})}
+
+function openLeaveModal(leaveData,mode='create'){
+  if((mode==='edit'||mode==='cancel')&&leaveData){if(!U)return askLogin(()=>openLeaveModal(leaveData,mode));if(!U.admin&&U.n!==leaveData.name)return alert('แก้ไขได้เฉพาะใบลาของตนเอง (เข้าสู่ระบบด้วยชื่อ '+leaveData.name+')')}
+  tg(0);$('pdfPreviewWrap').classList.add('hidden');
+  if((mode==='edit'||mode==='printleave')&&leaveData){editingLeaveId=leaveData.id;$('formModalTitle').textContent='✏️ แก้ไขข้อมูลใบลา';$('sv').textContent='💾 บันทึกการแก้ไขใบลา';$('ty').value=leaveData.type;$('cty').value=leaveData.cty||'sick';$('nm2').value=leaveData.name;$('s').value=leaveData.s;$('e').value=leaveData.e;$('dy').value=leaveData.days;$('dt').value=leaveData.dt||iso(new Date());$('rs').value=leaveData.rs;$('ctc').value=leaveData.ctc;$('sb').value=leaveData.sb;setEx(parseEx(leaveData.ex))}
+  else if(mode==='cancel'&&leaveData){editingLeaveId=null;$('formModalTitle').textContent='📄 ทำใบยกเลิกวันลา';$('sv').textContent='💾 บันทึกใบยกเลิกวันลา';$('ty').value='cancel';$('cty').value=leaveData.type==='cancel'?(leaveData.cty||'vac'):effType(leaveData);$('nm2').value=leaveData.name;$('s').value=leaveData.s;$('e').value=leaveData.e;$('dy').value=leaveData.days;$('dt').value=iso(new Date());$('rs').value='';$('ctc').value=leaveData.ctc||'';$('sb').value=leaveData.sb||'';setEx({})}
+  else{editingLeaveId=null;$('formModalTitle').textContent='📝 กรอกข้อมูลใบลา';$('sv').textContent='💾 บันทึกใบลา';$('clrForm').click();if(U&&!U.admin){$('nm2').value=U.n;$('nm2').oninput()}if(sel){$('s').value=sel;$('e').value=sel;calc()}}
+  if(mode==='printleave'||mode==='edit'){$('f_pos').value='';$('f_dept').value=(leaveData&&leaveData.dept)||'กลุ่มงานรังสีวิทยา';$('f_type').value='';$('f_carry').value=''}
+  fillFromPerson();
+  if(mode==='printleave')$('formModalTitle').textContent='🖨️ พิมพ์ใบลา';
+  const pv=mode==='printleave',canSave=!pv;
+  $('sv').classList.toggle('hidden',!canSave);
+  $('clrForm').classList.toggle('hidden',pv);
+  ['btnPrintPdf','btnDownloadPdf'].forEach(i=>$(i).classList.toggle('hidden',mode==='edit'));
+  ['ty','cty','nm2','s','e','dy','dt','rs','ctc','sb','f_pos','f_dept','f_type','f_carry','o1','o2','o3','o4',...EX_ABROAD.map(k=>'x_'+k),...EX_ORD.map(k=>'x_'+k)].forEach(i=>$(i).disabled=pv);
+  const gn=$('guestNote');gn.textContent=pv?'🖨️ โหมดพิมพ์: ดูและพิมพ์ได้อย่างเดียว แก้ไขใบลาไม่ได้ (ถ้าต้องการแก้ไข ให้กดปุ่ม ✏️ แก้ไข)':'✅ บันทึกใบลาได้เลยโดยไม่ต้องเข้าสู่ระบบ — ถ้าภายหลังต้องการแก้ไข ลบ หรือยกเลิกวันลา ต้องเข้าสู่ระบบด้วยชื่อเจ้าของใบลา';gn.classList.toggle('hidden',pv?false:!!U);
+  $('pdet').open=false;updateFormUI();$('leaveModal').style.display='flex';warm();
+}
+$('topLeaveBtn').onclick=()=>openLeaveModal(null,'create');$('closeLeaveModal').onclick=()=>{$('leaveModal').style.display='none';editingLeaveId=null};
+
+let cm=new Date();cm.setDate(1);let sel=iso(new Date());
+const on=(l,d)=>l.type!=='cancel'&&!l.cancelled&&l.s&&l.e&&l.s<=d&&d<=l.e;
+function renderLeaveRow(l){const p=person(l.name),posTxt=p&&p.pos?p.pos:(l.dept||'');return`<div class="row"><div>${esc(l.name)}<span class="tag t-${l.type}">${TY[l.type]||l.type}</span><br><small style="color:var(--mu)">${esc(posTxt)} · ${th(l.s)} – ${th(l.e)} (${esc(l.days)} วัน)</small></div><div style="display:flex;gap:4px"><button class="btn s" style="margin:0;padding:6px 12px" data-print="${esc(l.id)}">🖨️ พิมพ์</button>${!U||U.admin||U.n===l.name?`<button class="btn s" style="margin:0;padding:6px 12px" data-edit="${esc(l.id)}">✏️ แก้ไข</button><button class="btn d" style="margin:0;padding:6px 12px" data-del="${esc(l.id)}">🗑️ ลบ</button>`:''}</div></div>`}
+function bindLeaveRowActions(c){c.querySelectorAll('[data-print]').forEach(b=>b.onclick=()=>{const l=S.leaves.find(x=>x.id===b.dataset.print);if(l)openLeaveModal(l,'printleave')});c.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>openLeaveModal(S.leaves.find(x=>x.id===b.dataset.edit),'edit'));c.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{const l=S.leaves.find(x=>x.id===b.dataset.del);if(!l)return;if(!U)return askLogin(()=>b.click());if(!U.admin&&U.n!==l.name)return alert('ลบได้เฉพาะใบลาของตนเอง');targetDelLeave=l;$('delChoiceDesc').innerHTML=`ใบลาของ <b>${esc(l.name)}</b> (${TY[l.type]||l.type} วันที่ ${th(l.s)} – ${th(l.e)})<br>คุณต้องการทำ <b>"ใบยกเลิกวันลา"</b> หรือลบข้อมูลทิ้งถาวร?`;$('delChoiceModal').style.display='flex'})}
+
+// วาดปฏิทิน: วนใบลาครั้งเดียวต่อเดือน
+function cal(){
+  const y=cm.getFullYear(),m=cm.getMonth(),n=new Date(y,m+1,0).getDate(),mk=iso(new Date(y,m,1)),ek=iso(new Date(y,m,n)),h=hols(),td=iso(new Date());
+  $('mt').textContent=MN[m]+' '+(y+543);
+  const cnt=Array.from({length:n+1},()=>({rad:0,ast:0,oth:0}));
+  S.leaves.forEach(l=>{if(l.type==='cancel'||l.cancelled||!l.s||!l.e||l.e<mk||l.s>ek)return;const g=roleGroup(l.name),a=l.s<mk?1:+l.s.slice(8,10),b=l.e>ek?n:+l.e.slice(8,10);for(let i=a;i<=b;i++)cnt[i][g]++});
+  const t=['อา','จ','อ','พ','พฤ','ศ','ส'].map(x=>`<div class="h">${x}</div>`);
+  for(let i=0;i<new Date(y,m,1).getDay();i++)t.push('<div></div>');
+  for(let i=1;i<=n;i++){const d=new Date(y,m,i),k=iso(d),w=!isWork(d,h),c=cnt[i];
+    const b=(c.rad||c.ast||c.oth)?`<div class="badges">${c.rad?`<span class="cbadge rad">รังสี ${c.rad}</span>`:''}${c.ast?`<span class="cbadge ast">ผู้ช่วย ${c.ast}</span>`:''}${c.oth?`<span class="cbadge oth">อื่นๆ ${c.oth}</span>`:''}</div>`:'';
+    t.push(`<div class="day${w?' we':''}${k===sel?' sel':''}${k===td?' td':''}" data-d="${k}"><small>${i}${h.has(k)?' 🎌':''}</small>${b}</div>`)}
+  $('cal').innerHTML=t.join('');list();
+}
+// กดวัน: แค่สลับไฮไลต์ + อัปเดตรายชื่อ ไม่วาดทั้งเดือนใหม่
+$('cal').onclick=e=>{const d=e.target.closest('.day');if(!d)return;sel=d.dataset.d;const o=$('cal').querySelector('.day.sel');if(o)o.classList.remove('sel');d.classList.add('sel');list()};
+function list(){
+  const ls=S.leaves.filter(l=>on(l,sel));
+  $('dl').innerHTML=`<b>${th(sel)}</b> <span class="big">${ls.length}</span> คนลา`+(U&&U.admin?`<button class="btn s" id="th" style="float:right;margin:0;padding:6px 12px;font-size:13px">${hols().has(sel)?'❌ ยกเลิกวันหยุด':'🎌 ตั้งเป็นวันหยุด'}</button>`:'')+(ls.length?'':'<p style="color:var(--mu);margin:8px 0 0">ไม่มีผู้ลาในวันนี้</p>')+ls.map(renderLeaveRow).join('');
+  bindLeaveRowActions($('dl'));
+}
+$('btnMakeCancelForm').onclick=()=>{$('delChoiceModal').style.display='none';if(targetDelLeave)openLeaveModal(targetDelLeave,'cancel')};
+// ลบแบบทันที (อัปเดตหน้าจอก่อน แล้วค่อยส่งไปเซิร์ฟเวอร์ ถ้าพลาดจะย้อนกลับ)
+$('btnHardDelete').onclick=()=>{$('delChoiceModal').style.display='none';if(!targetDelLeave)return;const id=targetDelLeave.id,prev=S.leaves;S.leaves=prev.filter(l=>l.id!==id);cal();toast('กำลังลบ...');pend++;let ok=false;api('deleteLeave',A(),id).then(()=>{ok=true;toast('ลบเรียบร้อย ✓')}).catch(e=>{S.leaves=prev;cal();alert(e.message||e)}).finally(()=>{pend--;if(!ok)sync(true)})};
+$('pm').onclick=()=>{cm.setMonth(cm.getMonth()-1);cal()};$('nm').onclick=()=>{cm.setMonth(cm.getMonth()+1);cal()};
+function togHol(){const k=sel,h=hols().has(k),t=(S.cfg.hol||'').split(/\s+/).filter(x=>x&&x!==k&&x!=='-'+k),fix=FIX.includes(k.slice(5)),old=S.cfg.hol;if(!h){if(!fix)t.push(k)}else if(fix)t.push('-'+k);S.cfg.hol=t.join('\n');cal();api('saveConfig',A(),S.cfg).then(()=>{$('hol').value=S.cfg.hol;toast('บันทึกวันหยุดแล้ว ✓')}).catch(e=>{S.cfg.hol=old;cal();alert(e.message||e)})}
+$('dl').addEventListener('click',e=>{if(e.target.id==='th')togHol()});
+
+const fy=s=>{const d=pd(s);return d.getFullYear()+(d.getMonth()>=9?1:0)};
+function used(p,type,s,before){return S.leaves.filter(l=>!l.cancelled&&l.id!==editingLeaveId&&l.name===p&&effType(l)===type&&l.type!=='ord'&&fy(l.s)===fy(s)&&(!before||l.s<before)).reduce((a,l)=>a+(+l.days||0),0)}
+function sup(p,s,e){const c=S.cfg.c,nm=p&&p.name,m=[],away=n=>!!n&&(n===nm||!!(s&&S.leaves.some(l=>l.id!==editingLeaveId&&l.name===n&&l.type!=='cancel'&&!l.cancelled&&l.s<=(e||s)&&l.e>=s))),a=away(c[0]),b=away(c[2]),res=[a?(c[4]||''):c[0],a&&c[4]?c[5]:(a?'':c[1]),b?(c[6]||''):c[2],b&&c[6]?c[7]:(b?'':c[3])].map(x=>x||'');if(a)m.push(c[4]?'หัวหน้างานไม่อยู่ → ใช้ผู้รักษาการ '+c[4]:'หัวหน้างานไม่อยู่');if(b)m.push(c[6]?'หัวหน้ากลุ่มงานไม่อยู่ → ใช้ผู้รักษาการ '+c[6]:'หัวหน้ากลุ่มงานไม่อยู่');['o1','o2','o3','o4'].forEach((i,x)=>{const v=$(i)&&$(i).value.trim();if(v)res[x]=v});if($('sw'))$('sw').textContent=m.length?'⚠️ '+m.join(' · '):'';return res}
+function updateFormUI(){const t=$('ty').value,P=person($('nm2').value)||{name:$('nm2').value},s=$('s').value,e=$('e').value;$('ct').style.display=t==='cancel'?'block':'none';$('exAbroad').style.display=t==='abroad'?'block':'none';$('exOrd').style.display=t==='ord'?'block':'none';$('dyLbl').textContent=t==='ord'?'จำนวนวัน (นับทุกวัน)':'จำนวนวันทำการ';$('pi').textContent='';const sm=[$('f_pos').value,$('f_type').value,$('ctc').value&&'ติดต่อ '+$('ctc').value].filter(Boolean).join(' · ');$('pdetSum').textContent=sm||'ยังไม่มีข้อมูล แตะเพื่อกรอก';sup(P,s,e)}
+['f_pos','f_dept','f_type','f_carry'].forEach(i=>$(i).addEventListener('input',()=>updateFormUI()));
+function calc(){const t=$('ty').value,s=$('s').value,e=$('e').value;$('dy').value=(t==='ord'?calDays(s,e):wd(s,e))||'';if(t==='abroad'){if(!$('x_ts').value)$('x_ts').value=s;if(!$('x_te').value)$('x_te').value=e;if(!$('x_td').value)$('x_td').value=calDays($('x_ts').value,$('x_te').value)||''}updateFormUI()}
+$('s').onchange=()=>{if(!$('e').value||$('e').value<$('s').value)$('e').value=$('s').value;calc()};$('e').onchange=calc;
+['x_ts','x_te'].forEach(i=>$(i).onchange=()=>{$('x_td').value=calDays($('x_ts').value,$('x_te').value)||''});
+['ty','cty','dy','dt','rs','ctc','sb','o1','o2','o3','o4'].forEach(i=>$(i).oninput=updateFormUI);
+$('ty').addEventListener('change',()=>{warm();calc()});
+function fillFromPerson(){const p=person($('nm2').value);if(p){$('f_pos').value=p.pos||'';$('f_dept').value=p.dept||'';$('f_type').value=p.type||'';$('f_carry').value=p.carry||0}}
+$('nm2').oninput=()=>{fillFromPerson();const p=person($('nm2').value);if(p&&!editingLeaveId){$('ctc').value=p.contact||'';$('sb').value=p.sub||'';
+  // เติมข้อมูลอุปสมบทจากใบลาอุปสมบทครั้งก่อนของคนนี้ (ถ้ามี)
+  const prev=S.leaves.filter(l=>l.type==='ord'&&l.name===p.name&&l.ex).sort((a,b)=>b.s.localeCompare(a.s))[0];if(prev&&!$('x_bd').value){const o=parseEx(prev.ex);$('x_bd').value=o.bd||'';$('x_sd').value=o.sd||''}}
+  updateFormUI()};
+$('clrForm').onclick=()=>{$('f_pos').value='';$('f_dept').value='กลุ่มงานรังสีวิทยา';$('f_type').value='';$('f_carry').value='';editingLeaveId=null;$('formModalTitle').textContent='📝 กรอกข้อมูลใบลา';$('sv').textContent='💾 บันทึกใบลา';['s','e','dy','rs','o1','o2','o3','o4'].forEach(i=>$(i).value='');setEx({});$('dt').value=iso(new Date());if(!U||U.admin){$('nm2').value='';$('ctc').value='';$('sb').value=''}$('pdfPreviewWrap').classList.add('hidden');updateFormUI()};
+
+// บันทึกใบลาแบบทันที: หน้าจอเปลี่ยนก่อน แล้วส่งเซิร์ฟเวอร์เบื้องหลัง ถ้าพลาดจะย้อนกลับและแจ้งเตือน
+$('sv').onclick=()=>{
+  const n=$('nm2').value.trim(),s=$('s').value,e=$('e').value;if(!n||!s||!e)return alert('กรอกชื่อ วันที่เริ่มและวันที่สิ้นสุดก่อน');if(!U&&$('ty').value==='cancel')return askLogin(()=>$('sv').click());if(!U&&editingLeaveId)return askLogin(()=>$('sv').click());if(U&&!U.admin&&n!==U.n)return alert('บันทึกได้เฉพาะใบลาของตนเอง');
+  const p=person(n)||{},t=$('ty').value,isEdit=!!editingLeaveId,leaveId=isEdit?editingLeaveId:('l'+Date.now());
+  const l={id:leaveId,name:n,dept:$('f_dept').value.trim()||p.dept||'',type:t,cty:$('cty').value,s,e,days:$('dy').value,dt:$('dt').value,rs:$('rs').value,ctc:$('ctc').value,sb:$('sb').value,cancelled:false,ex:(t==='abroad'||t==='ord')?JSON.stringify(getEx(t)):''};
+  const prev=S.leaves,next=prev.map(x=>(t==='cancel'&&x.id!==leaveId&&x.name===n&&effType(x)===l.cty&&x.s<=e&&x.e>=s&&!x.cancelled)?Object.assign({},x,{cancelled:true}):x),idx=next.findIndex(x=>x.id===leaveId);
+  if(idx>-1)next[idx]=Object.assign({},next[idx],l);else next.push(l);
+  S.leaves=next;
+  if(t!=='cancel'){$('leaveModal').style.display='none';editingLeaveId=null}else editingLeaveId=leaveId;
+  sel=s;cm=pd(s);cm.setDate(1);cal();toast('กำลังบันทึก...');
+  pend++;let ok=false;
+  api('saveLeave',A(),l).then(()=>{ok=true;toast('บันทึกเรียบร้อย ✓')}).catch(err=>{S.leaves=prev;cal();alert('บันทึกไม่สำเร็จ: '+(err.message||err))}).finally(()=>{pend--;if(!ok)sync(true)});
+};
+
+// ===== PDF: โหลดไลบรารี/ฟอนต์/ต้นฉบับเมื่อจำเป็น และอุ่นเครื่องไว้ล่วงหน้าตอนเปิดฟอร์ม =====
+const loadJs=srcs=>new Promise((ok,no)=>{let i=0;const t=()=>{if(i>=srcs.length)return no(new Error('โหลดไลบรารี PDF ไม่สำเร็จ ตรวจสอบอินเทอร์เน็ต'));const s=document.createElement('script');s.src=srcs[i++];s.onload=ok;s.onerror=()=>{s.remove();t()};document.head.appendChild(s)};t()});
+let libP=null,fontP=null;const tplP={};
+const loadPdfLibs=()=>libP||(libP=Promise.all([
+  typeof PDFLib!=='undefined'?1:loadJs(['https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js','https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js']),
+  typeof fontkit!=='undefined'?1:loadJs(['https://cdn.jsdelivr.net/npm/@pdf-lib/fontkit@1.1.1/dist/fontkit.umd.min.js','https://unpkg.com/@pdf-lib/fontkit@1.1.1/dist/fontkit.umd.min.js'])
+]).catch(e=>{libP=null;throw e}));
+const getFont=()=>fontP||(fontP=(async()=>{for(const u of['https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/sarabun/Sarabun-Regular.ttf','https://raw.githubusercontent.com/google/fonts/main/ofl/sarabun/Sarabun-Regular.ttf']){try{const r=await fetch(u);if(r.ok)return await r.arrayBuffer()}catch(e){}}throw new Error('โหลดฟอนต์ไม่สำเร็จ')})().catch(e=>{fontP=null;throw e}));
+const getTpl=id=>tplP[id]||(tplP[id]=api('getPdfTemplateBase64',id).then(b64=>{const bin=atob(b64),arr=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);return arr}).catch(e=>{delete tplP[id];throw e}));
+const tplKey=t=>({vac:'vac',cancel:'cancel',abroad:'abroad',ord:'ord'}[t]||'sick');
+function warm(){try{loadPdfLibs().catch(()=>{});getFont().catch(()=>{});const f=(S.cfg.pdf||{})[tplKey($('ty').value)];if(f)getTpl(f).catch(()=>{})}catch(e){}}
+
+/* ตำแหน่งข้อความบนแต่ละฟอร์ม (หน่วย pt, ต้นทางมุมซ้ายล่างของหน้ากระดาษ) วัดจากไฟล์ PDF จริง
+   f = ช่องข้อความ: [คีย์, x เริ่มเส้นประ, x จบเส้นประ, y ฐานบรรทัด, 'l'ชิดซ้าย/'c'กึ่งกลาง, ขนาดตัวอักษร]
+   c = ช่องกากบาท: [เงื่อนไข, x กึ่งกลางช่อง, y กึ่งกลางช่อง]
+   skew = ความเอียงของภาพสแกน (ใช้กับใบลาอุปสมบท) */
+const LAY={
+vac:{skew:0,
+  f:[   // [คีย์, x เริ่ม, x จบ, y บรรทัด, 'l'ซ้าย/'c'กลาง, ขนาดอักษร]
+   ["dd",303,340,722.7,"c",14], // วันที่เขียน
+   ["mm",363,471,722.7,"c",14], // เดือน
+   ["yy",493,549,722.7,"c",14], // ปี พ.ศ. (4 หลัก)
+   ["name",149,371,637.9,"c",14], // ชื่อผู้ลา
+   ["pos",395,548,615.7,"c",13], // ตำแหน่ง
+   ["dept",101,310,593.5,"c",14], // สังกัด/กลุ่มงาน
+   ["carry",136,194,571.4,"c",14], // วันลาพักผ่อนสะสม
+   ["total",461,506,571.4,"c",14], // รวมวันลาพักผ่อน
+   ["s",149,335,549.2,"c",14], // ตั้งแต่วันที่
+   ["e",369,549,549.2,"c",14], // ถึงวันที่
+   ["days",84,158,527.0,"c",14], // จำนวนวัน
+   ["ctc",346,544,527.0,"l",14], // ติดต่อระหว่างลาได้ที่
+   //["usd",55,134,364,"c",14], // สถิติ: ลามาแล้ว
+   //["cur",136,224,364,"c",14], // สถิติ: ลาครั้งนี้
+   //["sum",226,305,364,"c",14], // สถิติ: รวมเป็น
+   ["name",388,523,392.4,"c",13], // ชื่อผู้ลา
+   ["n1",300,400,350.2,"c",13], // ชื่อ ผู้ตรวจสอบ (หัวหน้างาน)
+   ["p1",300,400,340.0,"c",13], // ตำแหน่ง ผู้ตรวจสอบ
+   ["n2",384,525,266.2,"c",13], // ชื่อ ผู้บังคับบัญชา (หัวหน้ากลุ่มงาน)
+   ["p2",390,525,244.0,"c",13], // ตำแหน่ง ผู้บังคับบัญชา
+   ["sb",45,193,155.3,"c",14], // ผู้ปฏิบัติหน้าที่แทน
+   ["name",78,196,111.0,"c",13], // ชื่อผู้ลา
+  ],
+  c:[   // [เงื่อนไข, x กลางช่อง, y กลางช่อง]
+   ["emp:ข้าราชการ",398.9,644.1], // ติ๊ก ประเภทบุคลากร ข้าราชการ
+   ["emp:พนักงานราชการ",466.1,644.1], // ติ๊ก ประเภทบุคลากร พนักงานราชการ
+   ["emp:ลูกจ้างประจำ",52.6,621.9], // ติ๊ก ประเภทบุคลากร ลูกจ้างประจำ
+   ["emp:พนักงานกระทรวงสาธารณสุข",130.1,621.9], // ติ๊ก ประเภทบุคลากร พนักงานกระทรวงสาธารณสุข
+   ["emp:ลูกจ้างชั่วคราว",279.8,621.9], // ติ๊ก ประเภทบุคลากร ลูกจ้างชั่วคราว
+  ]},
+ // ===================== ใบลาป่วย/กิจ/คลอด/ช่วยภรรยาคลอด =====================
+ sick:{skew:0,
+  f:[   // [คีย์, x เริ่ม, x จบ, y บรรทัด, 'l'ซ้าย/'c'กลาง, ขนาดอักษร]
+   ["dd",267,317,743.5,"c",14], // วันที่เขียน
+   ["mm",340,450,743.5,"c",14], // เดือน
+   ["yy",468,531,743.5,"c",14], // ปี พ.ศ. (4 หลัก)
+   ["subj",88,236,721.3,"l",14], // เรื่อง
+   ["name",168,347,648.6,"c",14], // ชื่อผู้ลา
+   ["pos",419,530,625.7,"c",13], // ตำแหน่ง
+   ["dept",119,222,603.5,"c",14], // สังกัด/กลุ่มงาน
+   ["rs_sick",192,530,580.7,"l",14], // เหตุผลลาป่วย
+   ["rs_pers",220,530,557.7,"l",14], // เหตุผลลากิจ
+   ["s",108,266,487.7,"c",14], // ตั้งแต่วันที่
+   ["e",301,417,487.7,"c",14], // ถึงวันที่
+   ["days",456,516,487.7,"c",14], // จำนวนวัน
+   ["ls",398,530,465.5,"c",13], // ลาครั้งสุดท้าย ตั้งแต่
+   ["le",95,298,443.4,"c",13], // ลาครั้งสุดท้าย ถึง
+   ["ld",337,419,443.4,"c",13], // ลาครั้งสุดท้าย จำนวนวัน
+   ["ctc",115,528,421.2,"l",14], // ติดต่อระหว่างลาได้ที่
+   //["u_sick",126,189,328.3,"c",13], // สถิติ sick: ลามาแล้ว
+   //["c_sick",189,252,328.3,"c",13], // สถิติ sick: ลาครั้งนี้
+   //["t_sick",252,315,328.3,"c",13], // สถิติ sick: รวมเป็น
+   //["u_pers",126,189,305.7,"c",13], // สถิติ pers: ลามาแล้ว
+   //["c_pers",189,252,305.7,"c",13], // สถิติ pers: ลาครั้งนี้
+   ///["t_pers",252,315,305.7,"c",13], // สถิติ pers: รวมเป็น
+   //["u_mat",126,189,282.1,"c",13], // สถิติ mat: ลามาแล้ว
+  // ["c_mat",189,252,282.1,"c",13], // สถิติ mat: ลาครั้งนี้
+   //["t_mat",252,315,282.1,"c",13], // สถิติ mat: รวมเป็น
+   ["name",399,526,331.7,"c",13], // ชื่อผู้ลา
+   ["n1",250,500,305.8,"c",13], // ชื่อ ผู้ตรวจสอบ (หัวหน้างาน)
+   ["p1",250,500,290.7,"c",13], // ตำแหน่ง ผู้ตรวจสอบ
+   ["n2",398,530,223.8,"c",13], // ชื่อ ผู้บังคับบัญชา (หัวหน้ากลุ่มงาน)
+   ["p2",404,530,201.7,"c",13], // ตำแหน่ง ผู้บังคับบัญชา
+   ["sb_pers",63,256,90.1,"c",14], // มอบหมายให้ (ลากิจ)
+   ["name_pers",96,225,45.8,"c",13], // ชื่อผู้มอบ (ลากิจ)
+  ],
+  c:[   // [เงื่อนไข, x กลางช่อง, y กลางช่อง]
+   ["emp:ข้าราชการ",378.2,655.2], // ติ๊ก ประเภทบุคลากร ข้าราชการ
+   ["emp:พนักงานราชการ",447.3,655.2], // ติ๊ก ประเภทบุคลากร พนักงานราชการ
+   ["emp:ลูกจ้างประจำ",71.6,632.2], // ติ๊ก ประเภทบุคลากร ลูกจ้างประจำ
+   ["emp:พนักงานกระทรวงสาธารณสุข",151.0,632.2], // ติ๊ก ประเภทบุคลากร พนักงานกระทรวงสาธารณสุข
+   ["emp:ลูกจ้างชั่วคราว",302.5,632.2], // ติ๊ก ประเภทบุคลากร ลูกจ้างชั่วคราว
+   ["ty:sick",107.6,587.5], // ติ๊ก ประเภทลา sick
+   ["ty:pers",107.6,564.5], // ติ๊ก ประเภทลา pers
+   ["ty:mat",107.6,541.6], // ติ๊ก ประเภทลา mat
+   ["ty:wife",107.6,517.5], // ติ๊ก ประเภทลา wife
+   ["last:sick",130.3,471.7], // ติ๊ก ลาครั้งสุดท้าย sick
+   ["last:pers",172.3,471.7], // ติ๊ก ลาครั้งสุดท้าย pers
+   ["last:mat",239.9,471.7], // ติ๊ก ลาครั้งสุดท้าย mat
+  ]},
+ // ===================== ใบลาไปต่างประเทศ =====================
+ abroad:{skew:0,
+  f:[   // [คีย์, x เริ่ม, x จบ, y บรรทัด, 'l'ซ้าย/'c'กลาง, ขนาดอักษร]
+  
+   ["dd",288,319,696.8,"c",14], // วันที่เขียน
+   ["mm",341,442,696.8,"c",14], // เดือน
+   ["yyyy",459,523,696.8,"c",14], // ปี พ.ศ. (4 หลัก)
+   ["name",175,362,612.6,"c",14], // ชื่อผู้ลา
+   ["pos",199,357,584.5,"c",13], // ตำแหน่ง
+   ["dept",380,520,584.5,"c",13], // สังกัด/กลุ่มงาน
+   ["purpose",230,372,556.4,"c",13], // เพื่อ
+   ["place",381,521,556.4,"c",13], // ณ (ประเทศ)
+   ["ts",123,250,528.3,"c",13], // เดินทางตั้งแต่
+   ["te",279,370,528.3,"c",13], // เดินทางถึง
+   ["td",387,446,528.3,"c",14], // รวมกี่วัน
+   ["v_s",183,341,500.3,"c",13], // ลาพักผ่อน ตั้งแต่
+   ["v_e",371,521,500.3,"c",13], // ลาพักผ่อน ถึง
+   ["v_days",108,152,472.2,"c",14], // ลาพักผ่อน กำหนดกี่วัน
+   ["v_carry",324,368,472.2,"c",14], // วันลาพักผ่อนสะสม
+   ["v_total",142,215,444.1,"c",14], // รวมสิทธิลาพักผ่อน
+   ["p_s",160,256,416.0,"c",13], // ลากิจ ตั้งแต่
+   ["p_e",285,363,416.0,"c",13], // ลากิจ ถึง
+   ["p_days",401,460,416.0,"c",14], // ลากิจ กำหนดกี่วัน
+   ["sb",107,255,331.8,"c",14], // ผู้ปฏิบัติหน้าที่แทน
+   ["name",351,509,303.7,"c",13], // ชื่อผู้ลา
+   ["sb",71,219,275.6,"c",13], // ผู้ปฏิบัติหน้าที่แทน
+   ["n2",71,213,247.5,"c",13], // ชื่อ ผู้บังคับบัญชา (หัวหน้ากลุ่มงาน)
+   ["n1",70,200,200.2,"c",13], // ชื่อ ผู้ตรวจสอบ (หัวหน้างาน)
+   ["p1",70,200,180.0,"c",13], // ตำแหน่ง ผู้ตรวจสอบ
+  ],
+  c:[   // [เงื่อนไข, x กลางช่อง, y กลางช่อง]
+   ["emp:ข้าราชการ",390.5,617.1], // ติ๊ก ประเภทบุคลากร ข้าราชการ
+   ["emp:ลูกจ้างประจำ",455.9,617.1], // ติ๊ก ประเภทบุคลากร ลูกจ้างประจำ
+   ["emp:พนักงานราชการ",77.5,589.0], // ติ๊ก ประเภทบุคลากร พนักงานราชการ
+   ["lk:vac",79.2,504.8], // ติ๊ก ลาพักผ่อน/ลากิจ vac
+   ["lk:pers",79.2,420.5], // ติ๊ก ลาพักผ่อน/ลากิจ pers
+  ]},
+ // ===================== ใบลาอุปสมบท (ภาพสแกนเอียง) =====================
+ ord:{skew:-0.0115,
+  f:[   // [คีย์, x เริ่ม, x จบ, y บรรทัด, 'l'ซ้าย/'c'กลาง, ขนาดอักษร]
+   ["dd",301,325,696.0,"c",14], // วันที่เขียน
+   ["mm",353,434,696.0,"c",14], // เดือน
+   ["yy2",472,533,696.0,"c",14], // ปี พ.ศ. 2 หลักท้าย
+   ["name",200,357,616.7,"c",14], // ชื่อผู้ลา
+   ["pos",398,543,616.7,"c",13], // ตำแหน่ง
+   ["dept",118,540,598.7,"l",14], // สังกัด/กลุ่มงาน
+   ["bd",128,300,574.7,"c",14], // วันเกิด
+   ["sd",402,536,574.7,"c",14], // วันเข้ารับราชการ
+   ["wat",96,290,532.0,"l",13], // อุปสมบท ณ วัด
+   ["watAt",340,534,532.0,"l",13], // วัดตั้งอยู่ ณ
+   ["rdate",142,319,513.4,"c",14], // กำหนดวันอุปสมบท
+   ["rwat",430,536,513.4,"l",13], // จำพรรษา ณ วัด
+   ["rwatAt",124,540,494.9,"l",13], // วัดจำพรรษาตั้งอยู่ ณ
+   ["days",231,280,476.7,"c",14], // จำนวนวัน
+   ["s",340,530,476.7,"c",14], // ตั้งแต่วันที่
+   ["e",124,322,458.4,"c",14], // ถึงวันที่
+   ["name",368,527,336.7,"c",13], // ชื่อผู้ลา
+  ],
+  c:[   // [เงื่อนไข, x กลางช่อง, y กลางช่อง]
+   ["ord:new",140.7,552.6], // ติ๊ก เคย/ยังไม่เคยอุปสมบท new
+   ["ord:old",220.1,551.6], // ติ๊ก เคย/ยังไม่เคยอุปสมบท old
+  ]},
+};
+
+async function generateFilledPdfBlob(){
+  await loadPdfLibs();
+  const t=$('ty').value,pdfCfg=S.cfg.pdf||{},fileId=pdfCfg[tplKey(t)];
+  if(!fileId)throw new Error('ยังไม่ได้ตั้งค่าไฟล์ PDF ต้นฉบับสำหรับ "'+TY[t]+'" (เมนู ตั้งค่า & ไฟล์ PDF)');
+  const tplBytes=await getTpl(fileId);
+  const{PDFDocument,rgb,degrees}=PDFLib,pdfDoc=await PDFDocument.load(tplBytes);pdfDoc.registerFontkit(fontkit);
+  const font=await pdfDoc.embedFont(await getFont()),page=pdfDoc.getPages()[0],ox=Number(pdfCfg.ox)||0,oy=Number(pdfCfg.oy)||0,ink=rgb(0,0,0);
+
+  const P=Object.assign({},person($('nm2').value)||{},{name:$('nm2').value.trim(),pos:$('f_pos').value.trim(),dept:$('f_dept').value.trim(),type:$('f_type').value,carry:$('f_carry').value}),s=$('s').value,e=$('e').value,dy=$('dy').value,rs=$('rs').value,ctc=$('ctc').value,sb=$('sb').value;
+  const dt=$('dt').value||iso(new Date()),dp=dt.split('-'),sp=sup(P,s,e),tp=t==='cancel'?$('cty').value:t,ys=s||dt,cur=+dy||0;
+  const showN=pdfCfg.sn===undefined||pdfCfg.sn===null?true:!(pdfCfg.sn===0||pdfCfg.sn==='0'||pdfCfg.sn===false);
+  const ex=getEx(t),ac=+P.carry||0,by=String(+dp[0]+543);
+
+  // ----- ใบยกเลิกวันลา (ยังไม่มีไฟล์ต้นฉบับให้วัดตำแหน่ง ใช้ค่าเดิม) -----
+  if(t==='cancel'){
+    const usd=P.name?used(P.name,tp,ys):0;
+    const d=(text,x,y,size=13.5)=>{if(text!==undefined&&text!==null&&String(text).trim()!=='')page.drawText(String(text),{x:x+ox,y:y+oy,size,font,color:ink})};
+    d(String(+dp[2]),335,725);d(MN[+dp[1]-1],405,725);d(by,505,725);
+    d(P.name,175,662);d(P.pos,395,662);d(P.dept,135,638);d(TS[tp],375,638);
+    d(th(s),155,615);d(th(e),315,615);d(String(dy),465,615);d(rs,165,590);
+    d(TS[tp],205,566);d(String(dy),335,566);d(th(s),435,566);d(th(e),155,542);
+    d(P.name,375,465);d(sp[2],375,335);d(sp[3],375,315);
+    return new Blob([await pdfDoc.save()],{type:'application/pdf'});
+  }
+
+  // ----- ค่าที่จะลงในแต่ละช่อง (V) และช่องที่ต้องกากบาท (CHK) -----
+  const V={dd:String(+dp[2]),mm:MN[+dp[1]-1],yy:by,yyyy:by,yy2:by.slice(-2),name:P.name,pos:P.pos,dept:P.dept,ctc,sb,s:th(s),e:th(e),days:String(dy),
+    n1:showN?sp[0]:'',p1:sp[1],n2:showN?sp[2]:'',p2:sp[3]};
+  const CHK=new Set(['emp:'+P.type]);
+  if(t==='vac'){
+    const usd=P.name?used(P.name,'vac',ys):0;
+    Object.assign(V,{carry:String(ac),total:String(ac+10),usd:String(usd),cur:String(cur),sum:String(usd+cur)});
+  }else if(t==='sick'||t==='pers'||t==='mat'||t==='wife'){
+    V.subj='ขอ'+TY[t];CHK.add('ty:'+t);
+    if(t==='sick')V.rs_sick=rs;if(t==='pers'){V.rs_pers=rs;V.sb_pers=sb;V.name_pers=P.name}
+    ['sick','pers','mat'].forEach(k=>{const u=P.name?used(P.name,k,ys):0,c=tp===k?cur:0;if(u)V['u_'+k]=String(u);if(c)V['c_'+k]=String(c);if(u+c)V['t_'+k]=String(u+c)});
+    const last=S.leaves.filter(l=>!l.cancelled&&l.id!==editingLeaveId&&l.name===P.name&&['sick','pers','mat'].includes(l.type)&&l.s<ys).sort((a,b)=>b.s.localeCompare(a.s))[0];
+    if(last){CHK.add('last:'+last.type);V.ls=th(last.s);V.le=th(last.e);V.ld=String(last.days)}
+  }else if(t==='abroad'){
+    const ts=ex.ts||s,te=ex.te||e,lk=ex.lk||'vac';
+    Object.assign(V,{purpose:ex.purpose,place:ex.place,ts:th(ts),te:th(te),td:String(ex.td||calDays(ts,te)||'')});
+    CHK.add('lk:'+lk);
+    if(lk==='vac')Object.assign(V,{v_s:th(s),v_e:th(e),v_days:String(dy),v_carry:String(ac),v_total:String(ac+10)});
+    else Object.assign(V,{p_s:th(s),p_e:th(e),p_days:String(dy)});
+  }else if(t==='ord'){
+    CHK.add(ex.first==='old'?'ord:old':'ord:new');
+    Object.assign(V,{bd:th(ex.bd),sd:th(ex.sd),rdate:th(ex.rdate),wat:ex.wat,watAt:ex.watAt,rwat:ex.rwat,rwatAt:ex.rwatAt});
+  }
+
+  // ----- วาดตามตำแหน่งในตาราง LAY -----
+  const L=LAY[tplKey(t)],sk=L.skew||0,ang=sk?Math.atan(sk)*180/Math.PI:0;
+  L.f.forEach(([k,x0,x1,b,al,sz])=>{
+    const text=V[k];if(text===undefined||text===null||String(text).trim()==='')return;
+    const str=String(text);let size=sz||14,w=font.widthOfTextAtSize(str,size);
+    while(w>x1-x0-3&&size>8){size-=0.5;w=font.widthOfTextAtSize(str,size)}
+    let x=al==='c'?x0+(x1-x0-w)/2:x0+2;if(x<x0)x=x0;
+    const o={x:x+ox,y:b+sk*(x-100)+2+oy,size,font,color:ink};if(ang)o.rotate=degrees(ang);
+    page.drawText(str,o);
+  });
+  const msz=t==='ord'?18:(t==='abroad'?12:13),xw=font.widthOfTextAtSize('X',msz);
+  L.c.forEach(([cond,cx,cy])=>{if(CHK.has(cond))page.drawText('X',{x:cx-xw/2+ox,y:cy-msz*0.3+oy,size:msz,font,color:ink})});
+  return new Blob([await pdfDoc.save()],{type:'application/pdf'});
+}
+
+$('btnPrintPdf').onclick=async()=>{const b=$('btnPrintPdf'),o=b.textContent;b.textContent='⏳ กำลังเตรียมพิมพ์...';b.disabled=true;try{const url=URL.createObjectURL(await generateFilledPdfBlob()),f=$('pdfFrame');$('pdfPreviewWrap').classList.remove('hidden');f.onload=()=>{try{f.contentWindow.focus();f.contentWindow.print()}catch(e){window.open(url,'_blank')}};f.src=url}catch(e){alert(e.message||e)}finally{b.textContent=o;b.disabled=false}};
+$('btnDownloadPdf').onclick=async()=>{const b=$('btnDownloadPdf'),o=b.textContent;b.textContent='⏳ กำลังเตรียมไฟล์...';b.disabled=true;try{const url=URL.createObjectURL(await generateFilledPdfBlob()),a=document.createElement('a');a.href=url;a.download=`${TY[$('ty').value]}_${$('nm2').value||'โรงพยาบาลระยอง'}_${$('s').value||iso(new Date())}.pdf`;document.body.appendChild(a);a.click();a.remove()}catch(e){alert(e.message||e)}finally{b.textContent=o;b.disabled=false}};
+
+function plist(){$('pl').innerHTML=S.people.map(p=>`<option value="${esc(p.name)}">`).join('');if(!U)return;const ld=U.admin?S.people:S.people.filter(p=>p.name===U.n);$('plist').innerHTML='<b>รายชื่อบุคลากร ('+ld.length+')</b>'+ld.map(p=>`<div class="row"><div>${esc(p.name)}<span class="tag">${esc(p.type)}</span><br><small style="color:var(--mu)">ID: ${esc(p.id)} · ${esc(p.pos)} · ${esc(p.dept)}</small></div><div><button class="btn s" style="margin:0;padding:6px 12px" data-e="${esc(p.id)}">แก้ไข</button>${U.admin?`<button class="btn d" style="margin:0 0 0 4px;padding:6px 12px" data-r="${esc(p.id)}">ลบ</button>`:''}</div></div>`).join('');$('plist').querySelectorAll('[data-e]').forEach(b=>b.onclick=()=>{fillP(S.people.find(x=>x.id===b.dataset.e));scrollTo(0,0)});$('plist').querySelectorAll('[data-r]').forEach(b=>b.onclick=()=>{if(!confirm('ลบรายชื่อนี้?'))return;const id=b.dataset.r;api('deletePerson',A(),id).then(()=>{S.people=S.people.filter(x=>x.id!==id);plist();cal();toast('ลบรายชื่อแล้ว ✓')}).catch(e=>alert(e.message||e))})}
+$('ps2').onclick=()=>{const n=$('pn').value.trim();if(!n)return;const id=$('pid').value.trim();if(!id)return alert('กรอกรหัสพนักงาน (ID)');if(!S.people.some(x=>x.id===id)&&$('pw').value.length<4)return alert('ตั้งรหัสผ่านอย่างน้อย 4 ตัว');const b=$('ps2'),p={id,name:n,pos:$('pp').value,dept:$('pd').value,type:$('pt').value,carry:+$('pc').value||0,contact:$('pk').value,sub:''},i=S.people.findIndex(x=>x.id===id);b.disabled=true;b.textContent='⏳ กำลังบันทึก...';api('savePerson',A(),Object.assign({newPin:$('pw').value},p)).then(()=>{i<0?S.people.push(p):S.people[i]=Object.assign(S.people[i],p);$('pcl').click();plist();cal();if(U&&!U.admin)fillP(person(U.n));toast('บันทึกข้อมูลเรียบร้อย ✓')}).catch(e=>alert(e.message||e)).finally(()=>{b.disabled=false;b.textContent='บันทึกข้อมูล'})};
+$('pcl').onclick=()=>{['pid','pn','pp','pk','pw'].forEach(i=>$(i).value='');$('pd').value='กลุ่มงานรังสีวิทยา';$('pc').value=0;$('pid').readOnly=false;$('pn').readOnly=false};
+function fillP(p){if(!p)return;$('pid').value=p.id;$('pn').value=p.name;$('pp').value=p.pos;$('pd').value=p.dept;$('pt').value=p.type;$('pc').value=p.carry;$('pk').value=p.contact;$('pw').value='';$('pid').readOnly=true;$('pn').readOnly=true}
+
+const askLogin=v=>{nxt=v||'';$('lp').value='';$('lg').style.display='flex';setTimeout(()=>$('ln').focus(),50)};
+function applyU(){const isG=!U,isA=!!(U&&U.admin),isU=!!(U&&!U.admin);$('topLogin').textContent=isG?'🔐 เข้าสู่ระบบ':'🚪 ออกจากระบบ';$('topLogin').classList.toggle('out',!isG);$('us').textContent=isG?'ยังไม่ได้เข้าสู่ระบบ':(isA?'👑 ผู้ดูแลระบบ':'👤 '+U.n);$('usSub').textContent=isG?'ดูปฏิทินได้ · เข้าสู่ระบบเพื่อบันทึกใบลา':(isA?'แก้ไขบุคลากรและการตั้งค่าได้':'แก้ไขข้อมูลของตัวเองได้');$('nav-ppl').textContent=isA?'👥 จัดการบุคลากร':'👤 ข้อมูลส่วนตัว';$('nav-set').classList.toggle('hidden',!isA);$('pn').disabled=isU;$('pc').disabled=isU;$('nm2').readOnly=isU;$('pplTitle').textContent=isA?'➕ เพิ่ม / แก้ไขบุคลากร':'👤 ข้อมูลส่วนตัวของฉัน';$('pcl').classList.toggle('hidden',!isA);$('plist').classList.toggle('hidden',!isA);if(isU){$('nm2').value=U.n;$('nm2').oninput();fillP(person(U.n))}else if(isG){$('nm2').value='';$('pcl').click()}plist();list();updateFormUI()}
+$('lgo').onclick=()=>{const b=$('lgo'),id=$('ln').value.trim(),p=$('lp').value;if(!id||!p)return alert('กรอก ID และรหัสผ่าน');b.disabled=true;b.textContent='⏳ กำลังตรวจสอบ...';api('login',{id,p}).then(r=>{U={id:r.id,n:r.name,p,admin:r.admin};$('lg').style.display='none';$('ln').value='';applyU();const go=nxt;nxt='';if(typeof go==='function')go();else if(go==='MODAL_LEAVE')openLeaveModal(null,'create');else if(go)switchView(go)}).catch(e=>alert(e.message||e)).finally(()=>{b.disabled=false;b.textContent='เข้าสู่ระบบ'})};
+['ln','lp'].forEach(i=>$(i).addEventListener('keydown',e=>{if(e.key==='Enter')$('lgo').click()}));
+$('lcn').onclick=()=>{nxt='';$('lg').style.display='none'};
+const handleAuthBtn=()=>{tg(0);pop(0);if(U){U=null;applyU();$('leaveModal').style.display='none';switchView('home')}else askLogin('')};
+$('topLogin').onclick=handleAuthBtn;
+
+function uploadPdf(key,input){const file=input.files[0];if(!file)return;const r=new FileReader();r.onload=()=>{toast('กำลังอัปโหลด...');api('uploadPdfTemplate',A(),key,r.result.split(',')[1],file.name).then(id=>{$('pdf_'+key).value=id;alert('อัปโหลดไฟล์ PDF สำเร็จ! อย่าลืมกด "บันทึกการตั้งค่าทั้งหมด"')}).catch(e=>alert(e.message||e))};r.readAsDataURL(file)}
+function fillCfg(){['c1','c2','c3','c4','c5','c6','c7','c8'].forEach((k,i)=>$(k).value=(S.cfg.c&&S.cfg.c[i])||'');$('hol').value=S.cfg.hol||'';const pdf=Object.assign({},DEF_PDF,S.cfg.pdf||{});['vac','sick','abroad','ord','cancel'].forEach(k=>$('pdf_'+k).value=pdf[k]||'');$('off_x').value=pdf.ox||0;$('off_y').value=pdf.oy||0;$('pdf_sn').checked=!(pdf.sn===0||pdf.sn==='0'||pdf.sn===false)}
+$('cs').onclick=()=>{const b=$('cs');S.cfg.c=['c1','c2','c3','c4','c5','c6','c7','c8'].map(k=>$(k).value);S.cfg.hol=$('hol').value;S.cfg.pdf={vac:$('pdf_vac').value.trim(),sick:$('pdf_sick').value.trim(),abroad:$('pdf_abroad').value.trim(),ord:$('pdf_ord').value.trim(),cancel:$('pdf_cancel').value.trim(),ox:Number($('off_x').value)||0,oy:Number($('off_y').value)||0,sn:$('pdf_sn').checked?1:0};b.disabled=true;api('saveConfig',A(),S.cfg).then(()=>toast('บันทึกการตั้งค่าทั้งหมดแล้ว ✓')).catch(e=>alert(e.message||e)).finally(()=>{b.disabled=false})};
+
+// วาดปฏิทินเปล่าก่อนทันที หน้าจะไม่ขาวค้าง แล้วค่อยโหลดข้อมูลจริง
+$('dt').value=iso(new Date());
+setEx({});
+applyU();
+cal();
+
+api('getData').then(d=>{
+  S=JSON.parse(d);
+  S.leaves=normalizeLeaves(S.leaves);
+  S.cfg=Object.assign({c:['','','','','','','',''],hol:''},S.cfg);
+  S.cfg.pdf=Object.assign({},DEF_PDF,S.cfg.pdf||{});
+  lastSync=Date.now();
+  fillCfg();applyU();cal();
+  if($('statusBanner'))$('statusBanner').remove();
+}).catch(err=>{
+  if($('statusBanner'))$('statusBanner').innerHTML='⚠️ โหลดข้อมูลไม่สำเร็จ: '+(err.message||err)+' <button class="btn s" style="margin:0 0 0 6px;padding:4px 10px" onclick="location.reload()">ลองใหม่</button>';
+});
+</script></body></html>
