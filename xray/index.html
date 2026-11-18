@@ -10,8 +10,8 @@
 <meta name="apple-mobile-web-app-title" content="X-ray General">
 <meta name="theme-color" content="#FDE9BE">
 <script>
-  // หน้าเว็บจริงอยู่ในโฟลเดอร์ web/ ของ repo นี้ (เรียก Apps Script ผ่าน fetch ไม่ต้องล็อกอิน Google)
-  const APP_URL = "../web/xray.html";
+  // หน้านี้เป็นแค่ไอคอนบนหน้าจอโทรศัพท์ — เว็บจริงอยู่ที่ Apps Script (แก้/Deploy ใน Apps Script ได้เลย ไม่ต้องแก้ GitHub)
+  const APP_URL = "https://script.google.com/macros/s/AKfycbxAFHfMwW_2rIuu4WTVpXhDxJfyp8MUlMkOG56onP9SHURg9g0G4Y4zuTdbKcmpNLdOpA/exec?page=xray";
   // ถ้าเปิดจากไอคอนบนหน้าจอโฮม ให้ไปที่เว็บจริงทันที
   const fromIcon = new URLSearchParams(location.search).has("app")
     || matchMedia("(display-mode: standalone)").matches || navigator.standalone;
