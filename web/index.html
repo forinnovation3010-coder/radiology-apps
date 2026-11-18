@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>เว็บงานรังสีวิทยา</title>
+<link rel="icon" type="image/png" href="../xray/favicon.png">
+<link rel="apple-touch-icon" href="../xray/apple-touch-icon.png">
+<meta name="theme-color" content="#F6F1FF">
+<style>
+  html,body{margin:0;height:100%;background:#F6F1FF;overflow:hidden}
+  iframe{position:fixed;inset:0;width:100%;height:100%;border:0;display:block}
+  #load{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+        font-family:system-ui,"Noto Sans Thai",sans-serif;color:#8a7bb5;font-size:15px}
+</style>
+</head>
+<body>
+<div id="load">กำลังโหลด…</div>
+<script>
+  // ===== ลิงก์ /exec ของเว็บ Apps Script (ใบลา + คลัง X-ray) =====
+  const APP_URL = "https://script.google.com/macros/s/AKfycbxAFHfMwW_2rIuu4WTVpXhDxJfyp8MUlMkOG56onP9SHURg9g0G4Y4zuTdbKcmpNLdOpA/exec";
+  // ส่งต่อพารามิเตอร์ เช่น ?page=xray ไปให้เว็บจริง
+  const f = document.createElement("iframe");
+  f.src = APP_URL + location.search;
+  f.allow = "camera *; clipboard-write *; fullscreen *";
+  f.onload = () => document.getElementById("load").remove();
+  document.body.appendChild(f);
+</script>
+</body>
+</html>
