@@ -3,7 +3,7 @@ const fs = require('fs'), path = require('path');
 const SRC = __dirname, OUT = require('path').join(__dirname, '..', 'web');
 const EXEC = 'https://script.google.com/macros/s/AKfycbxAFHfMwW_2rIuu4WTVpXhDxJfyp8MUlMkOG56onP9SHURg9g0G4Y4zuTdbKcmpNLdOpA/exec';
 const PAGES = {
-  leave: { file: 'LeavePage', out: 'index.html', icons: 'leave', app: 'Leave Online', color: '#ECE5FB', title: 'ระบบใบลา โรงพยาบาลระยอง', viewport: 'width=device-width, initial-scale=1' },
+  leave: { file: 'LeavePage', out: 'index.html', icons: 'xray', app: 'X-ray General', color: '#FDE9BE', title: 'ระบบใบลา โรงพยาบาลระยอง', viewport: 'width=device-width, initial-scale=1' },
   xray:  { file: 'XrayPage', out: 'xray.html', icons: 'xray', app: 'X-ray General', color: '#FDE9BE', title: 'ระบบจัดการคลังสินค้า X-ray', viewport: 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no' }
 };
 const MENU = [
@@ -54,7 +54,7 @@ fs.mkdirSync(OUT, { recursive: true });
 for (const [key, p] of Object.entries(PAGES)) {
   let html = render(p.file, { page: key, baseUrl: './', menu: MENU });
   const head = `<meta charset="utf-8">\n<meta name="viewport" content="${p.viewport}">\n<title>${p.title}</title>\n` +
-    // ไอคอนแยกของแต่ละระบบ (เพิ่มลงหน้าจอโฮมจากหน้านี้ได้เลย)
+    // ใช้ไอคอนเดียวกันทั้งเว็บ (ใบลา + X-ray เป็นแอปเดียว สลับระบบจากเมนู ☰)
     `<link rel="icon" type="image/png" href="../${p.icons}/favicon.png">\n` +
     `<link rel="manifest" href="../${p.icons}/manifest.json">\n` +
     `<link rel="apple-touch-icon" href="../${p.icons}/apple-touch-icon.png">\n` +
