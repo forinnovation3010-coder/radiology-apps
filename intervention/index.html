@@ -10,21 +10,22 @@
 <meta name="apple-mobile-web-app-title" content="Neuro Intervention">
 <meta name="theme-color" content="#F8EEDD">
 <script>
-  // ===== แก้บรรทัดนี้บรรทัดเดียว: ลิงก์ /exec ของเว็บ Apps Script =====
-  const APP_URL = "https://script.google.com/macros/s/AKfycbwr7-GSbhMfUgFmNJyvbwGjAFc1OWLxMx-6j_Acsj-rhh98N6dLvTR6nELmBCQ25A/exec";
-  // ถ้าเปิดจากไอคอนบนหน้าจอโฮม ให้ไปที่เว็บจริงทันที
-  const fromIcon = new URLSearchParams(location.search).has("app")
-    || matchMedia("(display-mode: standalone)").matches || navigator.standalone;
-  if (fromIcon) location.replace(APP_URL);
+// ===== แก้บรรทัดนี้บรรทัดเดียว: ลิงก์ /exec ของเว็บ Apps Script =====
+const APP_URL = "https://script.google.com/macros/s/AKfycbwr7-GSbhMfUgFmNJyvbwGjAFc1OWLxMx-6j_Acsj-rhh98N6dLvTR6nELmBCQ25A/exec";
+// ถ้าเปิดจากไอคอนบนหน้าจอโฮม ให้ไปที่เว็บจริงทันที
+const fromIcon = new URLSearchParams(location.search).has("app")
+  || matchMedia("(display-mode: standalone)").matches || navigator.standalone;
+// รอ 1 วินาทีให้ Chrome อ่านไอคอน/manifest ใหม่ได้ก่อน แล้วค่อยไปเว็บจริง
+if (fromIcon) setTimeout(function(){ location.replace(APP_URL); }, 1000);
 </script>
 <style>
-  body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;
-       background:#F8EEDD;font-family:system-ui,-apple-system,"Noto Sans Thai",sans-serif;color:#2B2B2B}
-  .card{text-align:center;padding:24px;max-width:360px}
-  img{width:180px;height:180px;border-radius:40px;box-shadow:0 8px 24px rgba(0,0,0,.12)}
-  h1{font-size:22px;margin:18px 0 6px}
-  a.btn{display:inline-block;margin:14px 0 22px;padding:12px 28px;border-radius:999px;background:#2B2B2B;color:#fff;text-decoration:none;font-weight:600}
-  .how{background:#fff8;border-radius:18px;padding:12px 16px;text-align:left;font-size:15px;line-height:1.6}
+body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;
+  background:#F8EEDD;font-family:system-ui,-apple-system,"Noto Sans Thai",sans-serif;color:#2B2B2B}
+.card{text-align:center;padding:24px;max-width:360px}
+img{width:180px;height:180px;border-radius:40px;box-shadow:0 8px 24px rgba(0,0,0,.12)}
+h1{font-size:22px;margin:18px 0 6px}
+a.btn{display:inline-block;margin:14px 0 22px;padding:12px 28px;border-radius:999px;background:#2B2B2B;color:#fff;text-decoration:none;font-weight:600}
+.how{background:#fff8;border-radius:18px;padding:12px 16px;text-align:left;font-size:15px;line-height:1.6}
 </style>
 </head>
 <body>
