@@ -15,7 +15,8 @@ const APP_URL = "https://script.google.com/macros/s/AKfycbyajgK5b2TInpPmVllKsSuG
 // ถ้าเปิดจากไอคอนบนหน้าจอโฮม ให้ไปที่เว็บจริงทันที
 const fromIcon = new URLSearchParams(location.search).has("app")
   || matchMedia("(display-mode: standalone)").matches || navigator.standalone;
-if (fromIcon) location.replace(APP_URL);
+// รอ 1 วินาทีให้ Chrome อ่านไอคอน/manifest ใหม่ได้ก่อน แล้วค่อยไปเว็บจริง
+if (fromIcon) setTimeout(function(){ location.replace(APP_URL); }, 1000);
 </script>
 <style>
 body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;
