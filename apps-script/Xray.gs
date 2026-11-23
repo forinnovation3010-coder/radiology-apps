@@ -110,6 +110,8 @@ function getAppData() {
       if (String(r[2]).trim()) warehouses.push(String(r[2]).trim());
     });
 
+    // ชื่อผู้ทำรายการ = รายชื่อเจ้าหน้าที่ในระบบใบลา (แท็บ People) ถ้ายังไม่มีใครค่อยใช้รายชื่อใน optionsConfig
+    try { const staff = (typeof qaStaff_ === "function") ? qaStaff_() : []; if (staff.length) operators = staff; } catch (e) {}
     if (!operators.length) operators = ["ณิชนันทน์", "ธิติ"];
     if (!roomsUsed.length) roomsUsed = ["ห้องฟลู", "ห้อง 2", "ห้อง 3", "ห้อง 6"];
     if (!warehouses.length) warehouses = ["คลังใหญ่", "คลังห้องMammogram", "คลังห้องFluoroscopy"];
