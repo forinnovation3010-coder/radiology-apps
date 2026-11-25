@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LINE OA ตอบอัตโนมัติ</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{--g:#06C755;--gd:#05a948;--bg:#f4f7f6;--card:#fff;--tx:#1f2d27;--mu:#6b7c74;--bd:#dde6e1;--red:#e5484d;}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'Sarabun',sans-serif;background:var(--bg);color:var(--tx);font-size:16px}
+  button{font:inherit;cursor:pointer}
+  input,select,textarea{font:inherit;width:100%;padding:10px 12px;border:1px solid var(--bd);border-radius:10px;background:#fff;color:var(--tx)}
+  textarea{min-height:96px;resize:vertical}
+  input:focus,select:focus,textarea:focus{outline:2px solid var(--g);border-color:transparent}
+  label{display:block;font-weight:600;margin:12px 0 6px;font-size:14px}
+  small{color:var(--mu);font-weight:400}
+  .btn{border:0;border-radius:10px;padding:11px 16px;background:var(--g);color:#fff;font-weight:600;min-height:44px}
+  .btn:hover{background:var(--gd)}
+  .btn.ghost{background:#fff;color:var(--tx);border:1px solid var(--bd)}
+  .btn.red{background:#fff;color:var(--red);border:1px solid #f3c5c6}
+  .btn:disabled{opacity:.55;cursor:wait}
+  .icon{border:1px solid var(--bd);background:#fff;border-radius:8px;min-width:40px;height:40px}
+  .hidden{display:none!important}
+
+  /* login */
+  #login{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+  #login .card{width:100%;max-width:360px;text-align:center}
+  .logo{width:64px;height:64px;border-radius:18px;background:var(--g);color:#fff;font-size:32px;display:flex;align-items:center;justify-content:center;margin:0 auto 10px}
+
+  /* layout */
+  header{position:sticky;top:0;z-index:20;background:var(--g);color:#fff;display:flex;align-items:center;gap:10px;padding:10px 14px}
+  header h1{font-size:18px;margin:0;flex:1}
+  #menuBtn{background:transparent;border:0;color:#fff;font-size:26px;width:44px;height:44px}
+  #drawer{position:fixed;inset:0 auto 0 0;width:260px;background:#fff;z-index:40;transform:translateX(-100%);transition:.2s;padding:16px 0;box-shadow:2px 0 18px rgba(0,0,0,.12)}
+  #drawer.open{transform:none}
+  #drawer a{display:block;padding:14px 22px;color:var(--tx);text-decoration:none;font-weight:600}
+  #drawer a.on{background:#e8f9ef;color:var(--gd);border-left:4px solid var(--g)}
+  #shade{position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:30}
+  main{max-width:760px;margin:0 auto;padding:14px 14px 100px}
+  .card{background:var(--card);border-radius:14px;padding:16px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+  h2{font-size:18px;margin:4px 0 10px}
+  .muted{color:var(--mu);font-size:14px}
+  .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .sp{flex:1}
+  .pill{display:inline-block;padding:2px 10px;border-radius:99px;font-size:13px;font-weight:600}
+  .ok{background:#e8f9ef;color:var(--gd)} .bad{background:#fdecec;color:var(--red)}
+  .url{word-break:break-all;font-size:13px;background:#f1f4f3;padding:8px 10px;border-radius:8px;margin-top:6px}
+  .rule .num{font-weight:700;color:var(--gd)}
+  .rule.off{opacity:.6}
+  .check{display:flex;align-items:center;gap:8px;font-weight:600;margin:0}
+  .check input{width:22px;height:22px}
+  .savebar{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--bd);padding:10px 14px;display:flex;gap:10px;justify-content:center;z-index:15}
+  .savebar .btn{flex:1;max-width:360px}
+  .dirty{color:#b26b00;font-size:13px;align-self:center}
+  .bubble{background:#e8f9ef;border-radius:14px 14px 14px 4px;padding:10px 12px;margin:6px 0;white-space:pre-wrap;max-width:90%}
+  .ububble{background:var(--g);color:#fff;border-radius:14px 14px 4px 14px;padding:10px 12px;margin:6px 0 6px auto;white-space:pre-wrap;max-width:90%;width:fit-content}
+  .group{border:1px solid var(--bd);border-radius:12px;padding:10px 12px;margin-bottom:8px}
+  .gid{font-family:monospace;font-size:12px;word-break:break-all;color:var(--mu)}
+  #toast{position:fixed;left:50%;bottom:84px;transform:translateX(-50%);background:#1f2d27;color:#fff;padding:10px 18px;border-radius:99px;z-index:60;font-size:15px;max-width:90%;text-align:center}
+  #toast.err{background:var(--red)}
+  .spin{display:inline-block;width:16px;height:16px;border:2px solid #fff;border-right-color:transparent;border-radius:50%;animation:s .7s linear infinite;vertical-align:-3px;margin-right:6px}
+  @keyframes s{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<!-- ===== กำลังโหลด / ผิดพลาด ===== -->
+<div id="boot" style="min-height:100vh;display:flex;align-items:center;justify-content:center;color:#6b7c74">กำลังโหลด...</div>
+<div id="bootErrBox" class="hidden" style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px">
+  <div class="card" style="max-width:420px"><h2>เปิดหน้าไม่ได้</h2><p id="bootErr" class="muted"></p></div>
+</div>
+
+<!-- ===== Login ===== -->
+<div id="login" class="hidden">
+  <div class="card">
+    <div class="logo">💬</div>
+    <h2>LINE OA ตอบอัตโนมัติ</h2>
+    <p class="muted">สำหรับแอดมินกลุ่มงานรังสีวิทยา</p>
+    <p class="muted">หน้านี้ตั้ง PIN ไว้</p>
+    <input id="pin" type="password" inputmode="numeric" placeholder="ใส่ PIN" autocomplete="current-password">
+    <button id="loginBtn" class="btn" style="width:100%;margin-top:12px">เข้าสู่ระบบ</button>
+  </div>
+</div>
+
+<!-- ===== App ===== -->
+<div id="app" class="hidden">
+  <header>
+    <button id="menuBtn" aria-label="เมนู">☰</button>
+    <h1 id="title">คำตอบอัตโนมัติ</h1>
+  </header>
+  <nav id="drawer">
+    <a href="#" data-p="rules" class="on">💬 คำตอบตามคำค้น</a>
+    <a href="#" data-p="msgs">👋 ข้อความทักทาย / ค่าเริ่มต้น</a>
+    <a href="#" data-p="test">🧪 ทดลองพิมพ์</a>
+    <a href="#" data-p="fwd">📨 ส่งต่อข้อความระหว่างกลุ่ม</a>
+    <a href="#" data-p="groups">👥 กลุ่มไลน์</a>
+    <a href="#" data-p="setup">⚙️ การเชื่อมต่อ</a>
+  </nav>
+  <div id="shade" class="hidden"></div>
+
+  <main>
+    <!-- คำตอบตามคำค้น -->
+    <section id="p-rules">
+      <div class="card">
+        <p class="muted" style="margin:0">ตอบเฉพาะ <b>แชต 1:1</b> เท่านั้น — ข้อความในกลุ่มไลน์บอทจะไม่ตอบ<br>
+        ระบบเช็กจากบนลงล่าง ข้อแรกที่ตรงจะถูกใช้ · ปุ่ม rich menu ที่ส่งข้อความ ให้ใส่ข้อความเดียวกันเป็นคำค้น<br>
+        ส่งได้ทั้งข้อความและรูป รวมไม่เกิน 5 ชิ้นต่อครั้ง (ข้อความก่อน รูปตามหลัง) · รูป JPG/PNG ไม่เกิน 1 MB</p>
+      </div>
+      <div id="rules"></div>
+      <button id="addRule" class="btn ghost" style="width:100%">＋ เพิ่มคำตอบ</button>
+    </section>
+
+    <!-- ข้อความทั่วไป -->
+    <section id="p-msgs" class="hidden">
+      <div class="card">
+        <h2>👋 เมื่อมีคนเพิ่มเพื่อน</h2>
+        <textarea id="WELCOME_MSG"></textarea>
+        <p class="muted">ปล่อยว่างถ้าไม่ต้องการส่ง (ถ้าใช้ข้อความนี้ ให้ปิด “ข้อความทักทาย” ใน LINE OA Manager จะได้ไม่ส่งซ้ำ)</p>
+      </div>
+      <div class="card">
+        <h2>🤖 เมื่อไม่ตรงคำค้นไหนเลย</h2>
+        <label class="check"><input type="checkbox" id="DEFAULT_ON"> ตอบข้อความค่าเริ่มต้น</label>
+        <textarea id="DEFAULT_MSG" style="margin-top:10px"></textarea>
+        <label>ตอบคนเดิมซ้ำได้ทุก (นาที) <small>— กันบอทตอบรัว ๆ ตอนเจ้าหน้าที่กำลังคุยเอง · 0 = ตอบทุกครั้ง</small></label>
+        <input id="COOLDOWN_MIN" type="number" min="0" max="360" inputmode="numeric">
+      </div>
+      <div class="card">
+        <label class="check"><input type="checkbox" id="LOG_ON"> บันทึกประวัติลงชีต Log <small>(ไม่เก็บเนื้อหาข้อความ)</small></label>
+      </div>
+      <p class="muted">💡 พิมพ์ <b>---</b> บรรทัดเดียว เพื่อแยกเป็นหลายข้อความ (สูงสุด 5)</p>
+    </section>
+
+    <!-- ทดลอง -->
+    <section id="p-test" class="hidden">
+      <div class="card">
+        <h2>🧪 ทดลองว่าบอทจะตอบอะไร</h2>
+        <p class="muted">ใช้ข้อมูลที่แก้อยู่ตอนนี้ (ยังไม่บันทึกก็ทดลองได้) · ไม่ได้ส่งเข้าไลน์จริง</p>
+        <div class="row"><input id="tryText" placeholder="พิมพ์เหมือนผู้ใช้ทักมา" style="flex:1"><button id="tryBtn" class="btn">ลอง</button></div>
+        <div id="tryOut" style="margin-top:12px"></div>
+      </div>
+    </section>
+
+    <!-- ส่งต่อข้อความ -->
+    <section id="p-fwd" class="hidden">
+      <div class="card">
+        <p class="muted" style="margin:0">เมื่อมีคนพิมพ์ในกลุ่มต้นทางโดย<b>ขึ้นต้นด้วยคำสั่ง</b> บอทจะส่งข้อความต่อไปกลุ่มปลายทาง พร้อมชื่อคนส่ง<br>
+        เช่น พิมพ์ <b>#ส่งต่อ ห้อง 2 ขอ sheath 6F</b> ในกลุ่ม MT Rayong → กลุ่ม INR จะได้ข้อความ “ห้อง 2 ขอ sheath 6F”<br>
+        ⚠️ ถ้าปล่อยคำสั่งว่าง ระบบจะส่งต่อ<b>ทุกข้อความ</b> ซึ่งจะกินโควตาเร็ว และอาจส่งข้อมูลผู้ป่วยข้ามกลุ่มได้<br>
+        ส่งต่อได้เฉพาะข้อความตัวอักษร (รูปและสติกเกอร์จะไม่ถูกส่งต่อ)</p>
+        <p id="fwdNoGroup" class="pill bad hidden" style="margin-top:10px">ยังไม่มีกลุ่มในระบบ — ให้พิมพ์ #groupid ในทั้งสองกลุ่มก่อน แล้วกดรีเฟรชที่เมนู “กลุ่มไลน์”</p>
+      </div>
+      <div id="fwds"></div>
+      <button id="addFwd" class="btn ghost" style="width:100%">＋ เพิ่มการส่งต่อ</button>
+      <div class="card" style="margin-top:12px">
+        <label class="check"><input type="checkbox" id="FORWARD_ACK"> ให้บอทตอบในกลุ่มต้นทางว่า “✅ ส่งต่อแล้ว”</label>
+        <p class="muted">ถ้าส่งต่อไม่สำเร็จ บอทจะแจ้งเตือนในกลุ่มต้นทางเสมอ</p>
+      </div>
+    </section>
+
+    <!-- กลุ่ม -->
+    <section id="p-groups" class="hidden">
+      <div class="card">
+        <div class="row"><h2 style="margin:0">👥 กลุ่มที่ OA อยู่</h2><span class="sp"></span><button id="reloadBtn" class="btn ghost">รีเฟรช</button></div>
+        <p class="muted">กลุ่มจะขึ้นที่นี่เองเมื่อมีคนพิมพ์ในกลุ่ม หรือพิมพ์ <b>#groupid</b> ในกลุ่มเพื่อให้บอทตอบ Group ID</p>
+        <div id="groups"></div>
+      </div>
+      <div class="card">
+        <h2>📤 ทดลองส่งข้อความเข้ากลุ่ม</h2>
+        <select id="pushGroup"></select>
+        <textarea id="pushText" placeholder="ข้อความทดสอบ" style="margin-top:8px"></textarea>
+        <button id="pushBtn" class="btn" style="width:100%;margin-top:8px">ส่งเข้ากลุ่ม</button>
+        <p class="muted">การ push นับโควตาข้อความของ OA ต่อเดือน (การตอบอัตโนมัติแบบ reply ไม่นับ)</p>
+      </div>
+    </section>
+
+    <!-- การเชื่อมต่อ -->
+    <section id="p-setup" class="hidden">
+      <div class="card">
+        <h2>⚙️ สถานะ</h2>
+        <div class="row">Channel access token: <span id="tokenPill" class="pill"></span></div>
+        <label>Webhook URL (ใส่ใน LINE Developers → Messaging API)</label>
+        <div id="hookUrl" class="url"></div>
+        <button id="copyHook" class="btn ghost" style="margin-top:8px">คัดลอก</button>
+      </div>
+      <div class="card">
+        <h2>📗 ชีตข้อมูล</h2>
+        <p class="muted">คำตอบ การส่งต่อ กลุ่ม และประวัติ เก็บในชีตนี้ (แก้ผ่านหน้านี้ดีกว่าแก้ในชีตตรง ๆ)</p>
+        <a id="sheetLink" class="btn ghost" href="#" target="_blank" style="display:inline-block;text-decoration:none">เปิดชีต</a>
+      </div>
+      <div class="card">
+        <h2>🔒 PIN หน้าตั้งค่า <small>(ไม่บังคับ)</small></h2>
+        <p id="pinState" class="muted"></p>
+        <input id="newPin" type="password" placeholder="PIN ใหม่ 4–20 ตัว · เว้นว่าง = ไม่ใช้ PIN">
+        <button id="pinBtn" class="btn" style="width:100%;margin-top:8px">บันทึก PIN</button>
+      </div>
+    </section>
+  </main>
+
+  <div class="savebar" id="savebar">
+    <span id="dirty" class="dirty hidden">● ยังไม่บันทึก</span>
+    <button id="saveBtn" class="btn">บันทึก</button>
+  </div>
+</div>
+
+<div id="toast" class="hidden"></div>
+
+<script>
+const MATCH_CONTAINS = 'มีคำนี้อยู่', MATCH_EXACT = 'ตรงทั้งคำ';
+let PIN = '', S = null, dirty = false;
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+/* ---------- server call helper ---------- */
+function call(fn, args, btn, onOk) {
+  let old;
+  if (btn) { old = btn.innerHTML; btn.disabled = true; btn.innerHTML = '<span class="spin"></span>กำลังทำ...'; }
+  const done = () => { if (btn) { btn.disabled = false; btn.innerHTML = old; } };
+  google.script.run
+    .withSuccessHandler(r => { done(); onOk && onOk(r); })
+    .withFailureHandler(e => { done(); toast((e && e.message) || String(e), true); })[fn](...args);
+}
+let tt;
+function toast(msg, err) {
+  const t = $('toast'); t.textContent = msg; t.className = err ? 'err' : '';
+  clearTimeout(tt); tt = setTimeout(() => t.className = 'hidden', err ? 4000 : 2200);
+}
+function setDirty(v) { dirty = v; $('dirty').classList.toggle('hidden', !v); }
+
+/* ---------- login ---------- */
+function showApp(r) { load(r); $('login').classList.add('hidden'); $('boot').classList.add('hidden'); $('app').classList.remove('hidden'); }
+// เปิดหน้าแล้วเข้าได้เลยถ้าไม่ได้ตั้ง PIN
+google.script.run
+  .withSuccessHandler(r => { PIN = ''; showApp(r); })
+  .withFailureHandler(e => {
+    $('boot').classList.add('hidden');
+    const msg = (e && e.message) || String(e);
+    if (/PIN/.test(msg)) $('login').classList.remove('hidden');
+    else { $('bootErr').textContent = msg; $('bootErrBox').classList.remove('hidden'); }
+  }).lineAdminLoad('');
+function login() {
+  const p = $('pin').value.trim();
+  if (!p) return toast('กรุณาใส่ PIN', true);
+  call('lineAdminLoad', [p], $('loginBtn'), r => { PIN = p; showApp(r); });
+}
+$('loginBtn').onclick = login;
+$('pin').onkeydown = e => { if (e.key === 'Enter') login(); };
+
+function load(r) {
+  S = r;
+  ['WELCOME_MSG', 'DEFAULT_MSG', 'COOLDOWN_MIN'].forEach(k => $(k).value = r.settings[k]);
+  ['DEFAULT_ON', 'LOG_ON', 'FORWARD_ACK'].forEach(k => $(k).checked = !!r.settings[k]);
+  renderRules(); renderGroups(); renderFwds(); renderSetup(); setDirty(false);
+}
+
+/* ---------- menu ---------- */
+const TITLES = {rules:'คำตอบตามคำค้น', msgs:'ข้อความทักทาย / ค่าเริ่มต้น', test:'ทดลองพิมพ์', fwd:'ส่งต่อข้อความ', groups:'กลุ่มไลน์', setup:'การเชื่อมต่อ'};
+function drawer(open) { $('drawer').classList.toggle('open', open); $('shade').classList.toggle('hidden', !open); }
+$('menuBtn').onclick = () => drawer(true);
+$('shade').onclick = () => drawer(false);
+document.querySelectorAll('#drawer a').forEach(a => a.onclick = e => {
+  e.preventDefault();
+  const p = a.dataset.p;
+  document.querySelectorAll('#drawer a').forEach(x => x.classList.toggle('on', x === a));
+  Object.keys(TITLES).forEach(k => $('p-' + k).classList.toggle('hidden', k !== p));
+  $('title').textContent = TITLES[p];
+  $('savebar').classList.toggle('hidden', !(p === 'rules' || p === 'msgs' || p === 'test' || p === 'fwd'));
+  drawer(false); window.scrollTo(0, 0);
+});
+
+/* ---------- rules ---------- */
+function renderRules() {
+  const box = $('rules');
+  if (!S.rules.length) { box.innerHTML = '<div class="card muted">ยังไม่มีคำตอบ กด “เพิ่มคำตอบ”</div>'; return; }
+  box.innerHTML = S.rules.map((r, i) => `
+    <div class="card rule ${r.active ? '' : 'off'}" data-i="${i}">
+      <div class="row">
+        <span class="num">#${i + 1}</span>
+        <label class="check"><input type="checkbox" data-f="active" ${r.active ? 'checked' : ''}> เปิดใช้</label>
+        <span class="sp"></span>
+        <button class="icon" data-a="up" title="เลื่อนขึ้น">↑</button>
+        <button class="icon" data-a="down" title="เลื่อนลง">↓</button>
+        <button class="icon" data-a="del" title="ลบ" style="color:var(--red)">🗑</button>
+      </div>
+      <label>คำค้น <small>(หลายคำคั่นด้วย ,)</small></label>
+      <input data-f="keywords" value="${esc(r.keywords)}" placeholder="เช่น ก่อนทำหัตถการ, เตรียมตัว">
+      <label>วิธีจับคู่</label>
+      <select data-f="match">
+        <option ${r.match !== MATCH_EXACT ? 'selected' : ''}>${MATCH_CONTAINS}</option>
+        <option ${r.match === MATCH_EXACT ? 'selected' : ''}>${MATCH_EXACT}</option>
+      </select>
+      <label>ข้อความตอบกลับ <small>(บรรทัด --- = แยกข้อความ)</small></label>
+      <textarea data-f="reply">${esc(r.reply)}</textarea>
+      <label>ลิงก์รูป <small>(บรรทัดละ 1 ลิงก์ · https://… .jpg/.png หรือลิงก์แชร์ Google Drive)</small></label>
+      <textarea data-f="images" style="min-height:64px" placeholder="https://.../ก่อนทำหัตถการ.jpg">${esc(r.images || '')}</textarea>
+      ${imgThumbs(r.images)}
+    </div>`).join('');
+}
+$('rules').addEventListener('input', e => {
+  const card = e.target.closest('.rule'), f = e.target.dataset.f;
+  if (!card || !f) return;
+  const r = S.rules[+card.dataset.i];
+  r[f] = f === 'active' ? e.target.checked : e.target.value;
+  if (f === 'active') card.classList.toggle('off', !r.active);
+  setDirty(true);
+});
+$('rules').addEventListener('focusout', e => {
+  if (!e.target.dataset || e.target.dataset.f !== 'images') return;
+  const card = e.target.closest('.rule');
+  card.querySelector('.thumbs').outerHTML = imgThumbs(S.rules[+card.dataset.i].images);
+});
+$('rules').addEventListener('change', e => { if (e.target.tagName === 'SELECT') e.target.dispatchEvent(new Event('input', {bubbles: true})); });
+$('rules').addEventListener('click', e => {
+  const b = e.target.closest('button[data-a]'); if (!b) return;
+  const i = +b.closest('.rule').dataset.i, a = b.dataset.a, R = S.rules;
+  if (a === 'del') { if (!confirm('ลบคำตอบ #' + (i + 1) + ' ?')) return; R.splice(i, 1); }
+  if (a === 'up' && i > 0) [R[i - 1], R[i]] = [R[i], R[i - 1]];
+  if (a === 'down' && i < R.length - 1) [R[i + 1], R[i]] = [R[i], R[i + 1]];
+  renderRules(); setDirty(true);
+});
+$('addRule').onclick = () => {
+  S.rules.push({keywords: '', match: MATCH_CONTAINS, reply: '', images: '', active: true});
+  renderRules(); setDirty(true);
+  const cards = document.querySelectorAll('.rule'); const c = cards[cards.length - 1];
+  c.scrollIntoView({behavior: 'smooth', block: 'center'}); c.querySelector('input[data-f=keywords]').focus();
+};
+['WELCOME_MSG', 'DEFAULT_MSG', 'COOLDOWN_MIN', 'DEFAULT_ON', 'LOG_ON', 'FORWARD_ACK'].forEach(k => $(k).addEventListener('input', () => setDirty(true)));
+
+/* ---------- forwards ---------- */
+function groupOptions(sel) {
+  const ids = S.groups.map(g => g.id);
+  let html = '<option value="">— เลือกกลุ่ม —</option>' +
+    S.groups.map(g => `<option value="${esc(g.id)}" ${g.id === sel ? 'selected' : ''}>${esc(g.name || g.id)}</option>`).join('');
+  if (sel && ids.indexOf(sel) < 0) html += `<option value="${esc(sel)}" selected>${esc(sel)} (ไม่พบในรายชื่อ)</option>`;
+  return html;
+}
+function renderFwds() {
+  $('fwdNoGroup').classList.toggle('hidden', S.groups.length > 0);
+  const box = $('fwds');
+  if (!S.forwards.length) { box.innerHTML = '<div class="card muted">ยังไม่มีการส่งต่อ กด “เพิ่มการส่งต่อ”</div>'; return; }
+  box.innerHTML = S.forwards.map((f, i) => `
+    <div class="card rule ${f.active ? '' : 'off'}" data-i="${i}">
+      <div class="row">
+        <span class="num">#${i + 1}</span>
+        <label class="check"><input type="checkbox" data-f="active" ${f.active ? 'checked' : ''}> เปิดใช้</label>
+        <span class="sp"></span>
+        <button class="icon" data-a="del" title="ลบ" style="color:var(--red)">🗑</button>
+      </div>
+      <label>จากกลุ่ม</label><select data-f="fromId">${groupOptions(f.fromId)}</select>
+      <label>ส่งต่อไปกลุ่ม</label><select data-f="toId">${groupOptions(f.toId)}</select>
+      <label>คำสั่งขึ้นต้น <small>(ว่าง = ส่งต่อทุกข้อความ)</small></label>
+      <input data-f="prefix" value="${esc(f.prefix)}" placeholder="${esc(S.forwardPrefix)}">
+    </div>`).join('');
+}
+$('fwds').addEventListener('input', e => {
+  const card = e.target.closest('.rule'), f = e.target.dataset.f;
+  if (!card || !f) return;
+  const r = S.forwards[+card.dataset.i];
+  r[f] = f === 'active' ? e.target.checked : e.target.value;
+  if (f === 'active') card.classList.toggle('off', !r.active);
+  setDirty(true);
+});
+$('fwds').addEventListener('click', e => {
+  const b = e.target.closest('button[data-a=del]'); if (!b) return;
+  const i = +b.closest('.rule').dataset.i;
+  if (!confirm('ลบการส่งต่อ #' + (i + 1) + ' ?')) return;
+  S.forwards.splice(i, 1); renderFwds(); setDirty(true);
+});
+$('addFwd').onclick = () => {
+  const find = re => (S.groups.find(g => re.test(g.name)) || {}).id || '';
+  const first = !S.forwards.length;
+  S.forwards.push({fromId: first ? find(/mt\s*rayong/i) : '', toId: first ? find(/inr/i) : '', prefix: S.forwardPrefix, active: true});
+  renderFwds(); setDirty(true);
+};
+
+function imgUrl(u) {
+  u = String(u || '').trim();
+  if (/drive\.google\.com|docs\.google\.com/.test(u)) {
+    const m = u.match(/\/d\/([\w-]{10,})/) || u.match(/[?&]id=([\w-]{10,})/);
+    return m ? 'https://lh3.googleusercontent.com/d/' + m[1] : '';
+  }
+  return /^https:\/\/\S+$/i.test(u) ? u : '';
+}
+const imgList = t => String(t || '').split(/[\r\n]+/).map(s => s.trim()).filter(Boolean);
+function imgThumbs(t) {
+  const L = imgList(t);
+  return '<div class="row thumbs" style="margin-top:8px">' + L.map(u => {
+    const ok = imgUrl(u);
+    return ok ? `<img src="${esc(ok)}" alt="" style="width:72px;height:72px;object-fit:cover;border-radius:8px;border:1px solid var(--bd)">`
+              : `<span class="pill bad">ลิงก์ไม่ถูกต้อง</span>`;
+  }).join('') + '</div>';
+}
+
+/* ---------- save ---------- */
+function collectSettings() {
+  return {
+    WELCOME_MSG: $('WELCOME_MSG').value, DEFAULT_MSG: $('DEFAULT_MSG').value,
+    COOLDOWN_MIN: $('COOLDOWN_MIN').value, DEFAULT_ON: $('DEFAULT_ON').checked, LOG_ON: $('LOG_ON').checked,
+    FORWARD_ACK: $('FORWARD_ACK').checked
+  };
+}
+$('saveBtn').onclick = () => {
+  const rules = S.rules.filter(r => String(r.keywords).trim() || String(r.reply).trim() || imgList(r.images).length);
+  for (let i = 0; i < rules.length; i++) {
+    if (!String(rules[i].keywords).trim()) return toast('คำตอบข้อ ' + (i + 1) + ' ยังไม่มีคำค้น', true);
+    if (!String(rules[i].reply).trim() && !imgList(rules[i].images).length) return toast('คำตอบข้อ ' + (i + 1) + ' ต้องมีข้อความหรือรูป', true);
+    if (imgList(rules[i].images).some(u => !imgUrl(u))) return toast('คำตอบข้อ ' + (i + 1) + ' มีลิงก์รูปไม่ถูกต้อง (ต้องขึ้นต้น https://)', true);
+  }
+  const forwards = S.forwards.filter(f => f.fromId || f.toId);
+  for (let i = 0; i < forwards.length; i++) {
+    if (!forwards[i].fromId || !forwards[i].toId) return toast('การส่งต่อข้อ ' + (i + 1) + ' ต้องเลือกทั้งต้นทางและปลายทาง', true);
+    if (forwards[i].fromId === forwards[i].toId) return toast('การส่งต่อข้อ ' + (i + 1) + ' เลือกกลุ่มเดียวกัน', true);
+    if (!String(forwards[i].prefix).trim() && !confirm('การส่งต่อข้อ ' + (i + 1) + ' ไม่มีคำสั่งขึ้นต้น จะส่งต่อทุกข้อความ ยืนยัน?')) return;
+  }
+  call('lineAdminSave', [PIN, {rules, forwards, settings: collectSettings()}],$('saveBtn'), r => { load(r); toast('บันทึกแล้ว ✓ (มีผลภายในไม่กี่วินาที)'); });
+};
+window.addEventListener('beforeunload', e => { if (dirty) { e.preventDefault(); e.returnValue = ''; } });
+
+/* ---------- test (เหมือนฝั่งเซิร์ฟเวอร์) ---------- */
+const norm = s => String(s == null ? '' : s).toLowerCase().replace(/\s+/g, ' ').trim();
+function findRule(text) {
+  const t = norm(text); if (!t) return -1;
+  return S.rules.findIndex(r => {
+    if (!r.active) return false;
+    const kws = String(r.keywords).split(/[,，]/).map(norm).filter(Boolean);
+    return r.match === MATCH_EXACT ? kws.some(k => t === k) : kws.some(k => t.indexOf(k) > -1);
+  });
+}
+const split = s => String(s || '').split(/\r?\n\s*---\s*\r?\n/).map(x => x.trim()).filter(Boolean).slice(0, 5);
+function tryIt() {
+  const text = $('tryText').value; if (!text.trim()) return;
+  const i = findRule(text); let msgs, note;
+  let imgs = [];
+  if (i > -1) {
+    msgs = split(S.rules[i].reply);
+    imgs = imgList(S.rules[i].images).map(imgUrl).filter(Boolean).slice(0, Math.max(0, 5 - msgs.length));
+    note = 'ตรงกับคำตอบ #' + (i + 1);
+  }
+  else if ($('DEFAULT_ON').checked) { msgs = split($('DEFAULT_MSG').value); note = 'ไม่ตรงคำค้น → ตอบข้อความค่าเริ่มต้น (คนเดิมตอบซ้ำได้ทุก ' + ($('COOLDOWN_MIN').value || 0) + ' นาที)'; }
+  else { msgs = []; note = 'ไม่ตรงคำค้น และปิดข้อความค่าเริ่มต้น → บอทไม่ตอบ'; }
+  $('tryOut').innerHTML = `<div class="ububble">${esc(text)}</div>` + msgs.map(m => `<div class="bubble">${esc(m)}</div>`).join('') +
+    imgs.map(u => `<img src="${esc(u)}" alt="" style="display:block;max-width:70%;border-radius:14px;margin:6px 0">`).join('') + `<p class="muted">${esc(note)}</p>`;
+}
+$('tryBtn').onclick = tryIt;
+$('tryText').onkeydown = e => { if (e.key === 'Enter') tryIt(); };
+
+/* ---------- groups ---------- */
+function renderGroups() {
+  const g = S.groups;
+  $('groups').innerHTML = g.length ? g.map((x, i) => `
+    <div class="group">
+      <div class="row"><b>${esc(x.name || (x.type === 'room' ? 'ห้องแชต' : 'กลุ่ม (ไม่ทราบชื่อ)'))}</b><span class="sp"></span>
+        <button class="btn ghost" data-copy="${i}" style="min-height:36px;padding:6px 12px">คัดลอก ID</button></div>
+      <div class="gid">${esc(x.id)}</div>
+      <div class="muted">พบล่าสุด ${esc(x.lastSeen)}</div>
+    </div>`).join('') : '<p class="muted">ยังไม่พบกลุ่ม — ลองพิมพ์ #groupid ในกลุ่มไลน์ที่มี OA อยู่</p>';
+  $('pushGroup').innerHTML = '<option value="">— เลือกกลุ่ม —</option>' +
+    g.map(x => `<option value="${esc(x.id)}">${esc(x.name || x.id)}</option>`).join('');
+}
+$('groups').addEventListener('click', e => { const b = e.target.closest('[data-copy]'); if (b) copy(S.groups[+b.dataset.copy].id); });
+$('reloadBtn').onclick = () => call('lineAdminLoad', [PIN], $('reloadBtn'), r => {
+  S.groups = r.groups; renderGroups(); renderFwds(); toast('อัปเดตรายชื่อกลุ่มแล้ว');
+});
+$('pushBtn').onclick = () => call('lineAdminTestPush', [PIN, $('pushGroup').value, $('pushText').value], $('pushBtn'), () => {
+  $('pushText').value = ''; toast('ส่งเข้ากลุ่มแล้ว ✓');
+});
+
+/* ---------- setup ---------- */
+function renderSetup() {
+  const p = $('tokenPill');
+  p.textContent = S.tokenSet ? 'ตั้งแล้ว ✓' : 'ยังไม่ได้ตั้ง'; p.className = 'pill ' + (S.tokenSet ? 'ok' : 'bad');
+  $('hookUrl').textContent = S.webhookUrl || '(ต้อง Deploy เป็น Web app ก่อน)';
+  $('pinState').textContent = S.pinSet ? 'ตอนนี้ต้องใส่ PIN ก่อนเข้าหน้านี้' : 'ตอนนี้ไม่ได้ตั้ง PIN — ใครมีลิงก์ก็เข้าแก้ได้';
+  $('sheetLink').href = S.sheetUrl || '#';
+}
+$('copyHook').onclick = () => copy(S.webhookUrl);
+$('pinBtn').onclick = () => {
+  const np = $('newPin').value.trim();
+  call('lineAdminChangePin', [PIN, np], $('pinBtn'), () => { PIN = np; S.pinSet = !!np; $('newPin').value = ''; renderSetup(); toast(np ? 'ตั้ง PIN แล้ว ✓' : 'ยกเลิก PIN แล้ว ✓'); });
+};
+
+function copy(text) {
+  const fallback = () => {
+    const ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); toast('คัดลอกแล้ว ✓'); } catch (e) { prompt('คัดลอกข้อความนี้', text); }
+    ta.remove();
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(() => toast('คัดลอกแล้ว ✓'), fallback);
+  else fallback();
+}
+</script>
+</body>
+</html>

@@ -5,7 +5,8 @@ const EXEC = 'https://script.google.com/macros/s/AKfycbxAFHfMwW_2rIuu4WTVpXhDxJf
 const PAGES = {
   leave: { file: 'LeavePage', out: 'index.html', icons: 'xray', app: 'X-ray General', color: '#FDE9BE', title: 'ระบบใบลา โรงพยาบาลระยอง', viewport: 'width=device-width, initial-scale=1' },
   xray:  { file: 'XrayPage', out: 'xray.html', icons: 'xray', app: 'X-ray General', color: '#FDE9BE', title: 'ระบบจัดการคลังสินค้า X-ray', viewport: 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no' },
-  qa:    { file: 'QAPage', out: 'qa.html', icons: 'xray', app: 'X-ray General', color: '#FDE9BE', title: 'Daily QA ห้อง X-ray', viewport: 'width=device-width, initial-scale=1' }
+  qa:    { file: 'QAPage', out: 'qa.html', icons: 'xray', app: 'X-ray General', color: '#FDE9BE', title: 'Daily QA ห้อง X-ray', viewport: 'width=device-width, initial-scale=1' },
+  line:  { file: 'LinePage', out: 'line.html', icons: 'intervention', app: 'Neuro Intervention', color: '#06C755', title: 'LINE OA ตอบอัตโนมัติ', viewport: 'width=device-width, initial-scale=1' }
 };
 const MENU = [
   { key: 'leave', icon: '📅', title: 'ระบบใบลา', sub: 'ปฏิทินการลา · พิมพ์ใบลา PDF', tone: 'violet' },

@@ -4,7 +4,8 @@
 const PAGES = {
   leave: { file: 'LeavePage', title: 'ระบบใบลา โรงพยาบาลระยอง', viewport: 'width=device-width, initial-scale=1' },
   xray:  { file: 'XrayPage', title: 'ระบบจัดการคลังสินค้า X-ray', viewport: 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no' },
-  qa:    { file: 'QAPage', title: 'Daily QA ห้อง X-ray', viewport: 'width=device-width, initial-scale=1' }
+  qa:    { file: 'QAPage', title: 'Daily QA ห้อง X-ray', viewport: 'width=device-width, initial-scale=1' },
+  line:  { file: 'LinePage', title: 'LINE OA ตอบอัตโนมัติ', viewport: 'width=device-width, initial-scale=1' }   // หน้าแอดมิน ไม่ใส่ในเมนู
 };
 const DEFAULT_PAGE = 'leave';   // เปิดลิงก์เปล่าๆ จะเข้าหน้านี้
 
@@ -49,13 +50,16 @@ const API_FUNCS = [
   'getAppData', 'processStockTransaction', 'returnFromSterile', 'deleteInventoryItem',
   'linkBarcode', 'unlinkBarcode', 'getHistory', 'saveEmergencyCheck', 'getEmergencyLogs',
   'qaInit', 'qaGetDay', 'qaSave', 'qaGetMonth',
-  'saveEmergencyShiftCheck', 'exportEmergencyMonth'
+  'saveEmergencyShiftCheck', 'exportEmergencyMonth',
+  'lineAdminLoad', 'lineAdminSave', 'lineAdminTestPush', 'lineAdminChangePin'
 ];
 
 function doPost(e) {
   let out;
   try {
     const req = JSON.parse(e.postData.contents);
+    // Webhook จาก LINE OA (มี events แต่ไม่มี fn) → Line.gs
+    if (req && Array.isArray(req.events) && !req.fn) return lineWebhook_(req);
     if (API_FUNCS.indexOf(req.fn) < 0) throw new Error('ไม่พบคำสั่ง: ' + req.fn);
     out = { ok: true, result: globalThis[req.fn].apply(null, req.args || []) };
   } catch (err) {
