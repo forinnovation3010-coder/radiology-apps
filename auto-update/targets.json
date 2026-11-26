@@ -1,0 +1,37 @@
+{
+  "_note": "scriptId ว่าง = ยังไม่เปิดอัปเดตอัตโนมัติ · deploymentId ว่าง = หาเองจาก Web app deployment ที่มีตัวเดียว · keep = บรรทัดที่เก็บค่าจริงจากโปรเจกต์ไว้",
+  "targets": [
+    {
+      "name": "เว็บงานรังสีวิทยา (ใบลา + X-ray + QA)",
+      "dir": "apps-script",
+      "scriptId": "",
+      "deploymentId": "AKfycbxAFHfMwW_2rIuu4WTVpXhDxJfyp8MUlMkOG56onP9SHURg9g0G4Y4zuTdbKcmpNLdOpA",
+      "keep": { "Leave": ["^const ADMIN_PIN\\b.*$"] }
+    },
+    {
+      "name": "Intervention Device",
+      "dir": "intervention/apps-script",
+      "scriptId": "",
+      "deploymentId": ""
+    },
+    {
+      "name": "MY SHIFT",
+      "dir": "myshift/apps-script",
+      "scriptId": "",
+      "deploymentId": ""
+    },
+    {
+      "name": "LINE OA Bot",
+      "dir": "line-oa/apps-script",
+      "scriptId": "",
+      "deploymentId": "AKfycbyEyp9QTJaZ7hNJwwLWmCKqwAUUDNveeP9xGURI7_PKvmPYLl8emmVmV8q_0mMHXqEn"
+    },
+    {
+      "name": "ตัวอัปเดต (ตัวเอง)",
+      "dir": "auto-update",
+      "scriptId": "SELF",
+      "deploy": false,
+      "keep": { "AutoUpdate": ["^const SHARE_WITH\\b.*$"] }
+    }
+  ]
+}
