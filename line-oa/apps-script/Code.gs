@@ -124,7 +124,22 @@ function doGet() {
 function doPost(e) {
   let body = {};
   try { body = JSON.parse((e && e.postData && e.postData.contents) || '{}'); } catch (err) {}
-  return lineWebhook_(body);
+  // หน้าตั้งค่าบน GitHub Pages เรียกผ่าน fetch (เลี่ยงปัญหาล็อกอิน Google หลายบัญชี)
+  if (body && body.fn) return lineApi_(body);
+  return lineWebhook_(body);   // Webhook จาก LINE
+}
+
+const LINE_API_FUNCS = ['lineAdminLoad', 'lineAdminSave', 'lineAdminTestPush', 'lineAdminChangePin'];
+
+function lineApi_(req) {
+  let out;
+  try {
+    if (LINE_API_FUNCS.indexOf(req.fn) < 0) throw new Error('ไม่พบคำสั่ง: ' + req.fn);
+    out = { ok: true, result: globalThis[req.fn].apply(null, req.args || []) };
+  } catch (err) {
+    out = { ok: false, error: String((err && err.message) || err) };
+  }
+  return ContentService.createTextOutput(JSON.stringify(out)).setMimeType(ContentService.MimeType.JSON);
 }
 
 function lineWebhook_(body) {

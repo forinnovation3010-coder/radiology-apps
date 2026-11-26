@@ -239,6 +239,13 @@ google.script.run
     if (/PIN/.test(msg)) $('login').classList.remove('hidden');
     else { $('bootErr').textContent = msg; $('bootErrBox').classList.remove('hidden'); }
   }).lineAdminLoad('');
+// ถ้าโหลดนานผิดปกติ บอกผู้ใช้แทนการค้างเงียบ ๆ
+setTimeout(() => {
+  if ($('boot').classList.contains('hidden')) return;
+  $('boot').classList.add('hidden');
+  $('bootErr').innerHTML = 'โหลดนานผิดปกติ (เกิน 30 วินาที)<br>ถ้าเปิดจากลิงก์ script.google.com ให้เปิดหน้า GitHub แทน:<br><b>forinnovation3010-coder.github.io/radiology-apps/line-oa/</b><br>หรือลองหน้าต่างไม่ระบุตัวตน';
+  $('bootErrBox').classList.remove('hidden');
+}, 30000);
 function login() {
   const p = $('pin').value.trim();
   if (!p) return toast('กรุณาใส่ PIN', true);
